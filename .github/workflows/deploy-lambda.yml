@@ -1,0 +1,26 @@
+name: Deploy to AWS Lambda
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+        uses: actions/checkout@v2
+        uses: actions/setup-go@v2
+        with:
+          go-version: "1.23.2"
+        run: GOOS=linux GOARCH=amd64 go build -o bootstrap lambda/main.go
+        run: zip function.zip bootstrap
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: Deploy to AWS Lambda
+        run: |
+          aws lambda update-function-code --function-name ImgTransformationStack-imageoptimization4C49F079-JMuXCUfwca31 --zip-file fileb://function.zip
