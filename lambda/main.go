@@ -9,6 +9,7 @@ import (
 
 func LambdHandler(ctx context.Context, event events.LambdaFunctionURLRequest) {
 	log.Println(event)
+	log.Println("hey ther")
 	return
 }
 
