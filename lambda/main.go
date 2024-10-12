@@ -77,6 +77,7 @@ func successfulResponse(object []byte, contentType string) (events.LambdaFunctio
 		Headers: map[string]string{
 			"Content-Type": contentType,
 		},
+		IsBase64Encoded: true,
 	}, nil
 }
 
