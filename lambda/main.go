@@ -10,11 +10,11 @@ import (
 )
 
 func LambdHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (string, error) {
-	eventJSON, err := json.Marshal(event.RawQueryString)
+	eventJSON, err := json.Marshal(event)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal event: %v", err)
 	}
-	log.Printf("Received event: %s", eventJSON)
+	log.Printf("Received event: %s :\n %s", eventJSON, event.RawPath)
 	return "Event processed successfully", nil
 }
 
