@@ -73,8 +73,6 @@ func fetchS3Object(key string, s3Client *s3.Client) ([]byte, string, error) {
 	return body, contentType, nil
 }
 
-func storeS3Object()
-
 func storeAndReturnTransformedMedia(object []byte, s3Cleint *s3.Client, key string, operations string, contentType string) (events.LambdaFunctionURLResponse, error) {
 	_, err := s3Cleint.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket:      aws.String(os.Getenv("transformedImageBucketName")),
