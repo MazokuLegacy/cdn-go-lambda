@@ -20,6 +20,9 @@ import (
 
 func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
 
+	ffmpegPath := fmt.Sprintf("%s/bin", os.Getenv("LAMBDA_TASK_ROOT"))
+	os.Setenv("PATH", os.Getenv("PATH")+":"+ffmpegPath)
+
 	cmd := exec.Command("ffmpeg", "-version")
 	output, err := cmd.CombinedOutput()
 
@@ -123,7 +126,5 @@ func handleFatalError(err error, message string) bool {
 }
 
 func main() {
-	ffmpegPath := fmt.Sprintf("%s/bin", os.Getenv("LAMBDA_TASK_ROOT"))
-	os.Setenv("PATH", os.Getenv("PATH")+":"+ffmpegPath)
 	lambda.Start(LambdaHandler)
 }
