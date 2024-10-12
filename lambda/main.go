@@ -1,16 +1,19 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
+	"io"
+	"log"
+	"os"
+	"strings"
+
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"io"
-	"log"
-	"strings"
 )
 
 func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
@@ -26,7 +29,8 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	}
 	lastIndex := len(pathArr) - 1
 	key := strings.Join(pathArr[:lastIndex], "/")
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("eu-west-2"))
+	operations := pathArr[lastIndex]
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
 	if handleFatalError(err, "failed to load config") {
 		return internalServerError("failed to load config")
 	}
@@ -36,7 +40,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		return internalServerError("failed to fetch original image")
 	}
 	if pathArr[0] != "cards" {
-		return successfulResponse(fetchedObject, sourceContentType)
+		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operations, sourceContentType)
 	}
 	return events.LambdaFunctionURLResponse{
 		StatusCode: 200,
@@ -53,7 +57,7 @@ func main() {
 
 func fetchS3Object(key string, s3Client *s3.Client) ([]byte, string, error) {
 	output, err := s3Client.GetObject(context.TODO(), &s3.GetObjectInput{
-		Bucket: aws.String("mazoku-cdn"),
+		Bucket: aws.String(os.Getenv("originalImageBucketName")),
 		Key:    aws.String(key),
 	})
 	if err != nil {
@@ -69,7 +73,18 @@ func fetchS3Object(key string, s3Client *s3.Client) ([]byte, string, error) {
 	return body, contentType, nil
 }
 
-func successfulResponse(object []byte, contentType string) (events.LambdaFunctionURLResponse, error) {
+func storeS3Object()
+
+func storeAndReturnTransformedMedia(object []byte, s3Cleint *s3.Client, key string, operations string, contentType string) (events.LambdaFunctionURLResponse, error) {
+	_, err := s3Cleint.PutObject(context.TODO(), &s3.PutObjectInput{
+		Bucket:      aws.String(os.Getenv("transformedImageBucketName")),
+		Key:         aws.String(key + "/" + operations),
+		Body:        bytes.NewReader(object),
+		ContentType: aws.String(contentType),
+	})
+	if err != nil {
+		return internalServerError("saving image to bucket failed")
+	}
 	encodedObject := base64.StdEncoding.EncodeToString(object)
 	return events.LambdaFunctionURLResponse{
 		StatusCode: 200,
