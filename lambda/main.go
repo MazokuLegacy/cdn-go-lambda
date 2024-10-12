@@ -7,20 +7,20 @@ import (
 	"strings"
 )
 
-func LambdHandler(ctx context.Context, event events.LambdaFunctionURLRequest) events.LambdaFunctionURLResponse {
+func LambdHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
 	var key = event.RawPath
 	var pathArr = strings.Split(key, "/")
 	if pathArr[0] == "frames" {
 		return events.LambdaFunctionURLResponse{
 			StatusCode: 401,
 			Body:       "Unautharized",
-		}
+		}, nil
 
 	}
 	return events.LambdaFunctionURLResponse{
 		StatusCode: 200,
 		Body:       "nice",
-	}
+	}, nil
 }
 
 func main() {
