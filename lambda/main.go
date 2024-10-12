@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-func LambdHandler(ctx context.Context, event events.LambdaFunctionURLRequest) events.LambdaFunctionURLResponse {
+func LambdHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
 
 	pathArr := strings.Split(event.RawPath, "/")[1:]
 	if pathArr[0] == "frames" {
@@ -23,7 +23,7 @@ func LambdHandler(ctx context.Context, event events.LambdaFunctionURLRequest) ev
 			Headers: map[string]string{
 				"Content-Type": "text/plain",
 			},
-		}
+		}, nil
 	}
 	lastIndex := len(pathArr) - 1
 	key := strings.Join(pathArr[:lastIndex], "/")
@@ -45,7 +45,7 @@ func LambdHandler(ctx context.Context, event events.LambdaFunctionURLRequest) ev
 		Headers: map[string]string{
 			"Content-Type": "text/plain",
 		},
-	}
+	}, nil
 }
 
 func main() {
@@ -70,25 +70,25 @@ func fetchS3Object(key string, s3Client *s3.Client) ([]byte, string, error) {
 	return body, *contentType, nil
 }
 
-func successfulResponse(object []byte, contentType string) events.LambdaFunctionURLResponse {
+func successfulResponse(object []byte, contentType string) (events.LambdaFunctionURLResponse, error) {
 	encodedObject := base64.StdEncoding.EncodeToString(object)
 	return events.LambdaFunctionURLResponse{
 		StatusCode: 200,
 		Body:       encodedObject,
 		Headers: map[string]string{
 			"Content-Type": contentType,
-		},
-	}
+		}
+	}, nil
 }
 
-func internalServerError(message string) events.LambdaFunctionURLResponse {
+func internalServerError(message string) (events.LambdaFunctionURLResponse, error) {
 	return events.LambdaFunctionURLResponse{
 		StatusCode: 500,
-		Body:       "Unauthorized",
+		Body:       message,
 		Headers: map[string]string{
 			"Content-Type": "text/plain",
-		},
-	}
+		}
+	}, nil
 }
 
 func handleFatalError(err error, message string) bool {
