@@ -66,8 +66,8 @@ func fetchS3Object(key string, s3Client *s3.Client) ([]byte, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	contentType := output.ContentType
-	return body, *contentType, nil
+	contentType := *output.ContentType
+	return body, contentType, nil
 }
 
 func successfulResponse(object []byte, contentType string) (events.LambdaFunctionURLResponse, error) {
