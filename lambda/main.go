@@ -27,14 +27,13 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	lastIndex := len(pathArr) - 1
 	key := strings.Join(pathArr[:lastIndex], "/")
 	cfg, err := config.LoadDefaultConfig(context.TODO())
-	if handleFatalError(err, err.Error()) {
-		log.Println("is not the logger")
+	if handleFatalError(err, "failed to load config") {
 		return internalServerError("failed to load config")
 	}
 	s3Client := s3.NewFromConfig(cfg)
 	fetchedObject, sourceContentType, err := fetchS3Object(key, s3Client)
 	log.Println("got object")
-	if handleFatalError(err, err.Error()) {
+	if handleFatalError(err, "failed to load config") {
 		return internalServerError("failed to fetch original image")
 	}
 	if pathArr[0] != "cards" {
