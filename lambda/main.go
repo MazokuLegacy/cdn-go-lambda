@@ -77,7 +77,7 @@ func successfulResponse(object []byte, contentType string) (events.LambdaFunctio
 		Body:       encodedObject,
 		Headers: map[string]string{
 			"Content-Type": contentType,
-		}
+		},
 	}, nil
 }
 
@@ -87,7 +87,7 @@ func internalServerError(message string) (events.LambdaFunctionURLResponse, erro
 		Body:       message,
 		Headers: map[string]string{
 			"Content-Type": "text/plain",
-		}
+		},
 	}, nil
 }
 
