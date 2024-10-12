@@ -15,7 +15,6 @@ import (
 
 func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
 	pathArr := strings.Split(event.RawPath, "/")[1:]
-	log.Println("got pathArr")
 	if pathArr[0] == "frames" {
 		return events.LambdaFunctionURLResponse{
 			StatusCode: 401,
@@ -29,11 +28,10 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	key := strings.Join(pathArr[:lastIndex], "/")
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if handleFatalError(err, err.Error()) {
+		log.Println("is not the logger")
 		return internalServerError("failed to load config")
 	}
-	log.Println("wasnt the handleFatalError")
 	s3Client := s3.NewFromConfig(cfg)
-	log.Println("got s3client")
 	fetchedObject, sourceContentType, err := fetchS3Object(key, s3Client)
 	log.Println("got object")
 	if handleFatalError(err, err.Error()) {
