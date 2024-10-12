@@ -13,13 +13,19 @@ func LambdHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (e
 	if pathArr[0] == "frames" {
 		return events.LambdaFunctionURLResponse{
 			StatusCode: 401,
-			Body:       "Unautharized",
+			Body:       "Unauthorized",
+			Headers: map[string]string{
+				"Content-Type": "text/plain",
+			},
 		}, nil
 
 	}
 	return events.LambdaFunctionURLResponse{
 		StatusCode: 200,
 		Body:       "nice",
+		Headers: map[string]string{
+			"Content-Type": "text/plain",
+		},
 	}, nil
 }
 
