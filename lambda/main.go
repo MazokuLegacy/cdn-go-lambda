@@ -26,14 +26,12 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		}, nil
 	}
 	lastIndex := len(pathArr) - 1
-	log.Println("got last index")
 	key := strings.Join(pathArr[:lastIndex], "/")
-	log.Println("got key")
 	cfg, err := config.LoadDefaultConfig(context.TODO())
-	log.Println("got config")
 	if handleFatalError(err, err.Error()) {
 		return internalServerError("failed to load config")
 	}
+	log.Println("wasnt the handleFatalError")
 	s3Client := s3.NewFromConfig(cfg)
 	log.Println("got s3client")
 	fetchedObject, sourceContentType, err := fetchS3Object(key, s3Client)
