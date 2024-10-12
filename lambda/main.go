@@ -13,9 +13,9 @@ import (
 	"strings"
 )
 
-func LambdHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
-
+func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
 	pathArr := strings.Split(event.RawPath, "/")[1:]
+	log.Println("got pathArr")
 	if pathArr[0] == "frames" {
 		return events.LambdaFunctionURLResponse{
 			StatusCode: 401,
@@ -26,13 +26,18 @@ func LambdHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (e
 		}, nil
 	}
 	lastIndex := len(pathArr) - 1
+	log.Println("got last index")
 	key := strings.Join(pathArr[:lastIndex], "/")
+	log.Println("got key")
 	cfg, err := config.LoadDefaultConfig(context.TODO())
+	log.Println("got config")
 	if handleFatalError(err, err.Error()) {
 		return internalServerError("failed to load config")
 	}
 	s3Client := s3.NewFromConfig(cfg)
+	log.Println("got s3client")
 	fetchedObject, sourceContentType, err := fetchS3Object(key, s3Client)
+	log.Println("got object")
 	if handleFatalError(err, err.Error()) {
 		return internalServerError("failed to fetch original image")
 	}
@@ -49,7 +54,7 @@ func LambdHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (e
 }
 
 func main() {
-	lambda.Start(LambdHandler)
+	lambda.Start(LambdaHandler)
 }
 
 func fetchS3Object(key string, s3Client *s3.Client) ([]byte, string, error) {
