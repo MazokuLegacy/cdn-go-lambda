@@ -33,7 +33,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	s3Client := s3.NewFromConfig(cfg)
 	fetchedObject, sourceContentType, err := fetchS3Object(key, s3Client)
 	log.Println("got object")
-	if handleFatalError(err, "failed to load config") {
+	if handleFatalError(err, "failed to fetch original image") {
 		return internalServerError("failed to fetch original image")
 	}
 	if pathArr[0] != "cards" {
