@@ -10,7 +10,7 @@ import (
 )
 
 func LambdHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (string, error) {
-	eventJSON, err := json.Marshal(event)
+	eventJSON, err := json.Marshal(event.RawQueryString)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal event: %v", err)
 	}
