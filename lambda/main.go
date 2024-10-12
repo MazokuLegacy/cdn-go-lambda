@@ -9,7 +9,7 @@ import (
 
 func LambdHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
 	var key = event.RawPath
-	var pathArr = strings.Split(key, "/")
+	var pathArr = strings.Split(key, "/")[1:]
 	if pathArr[0] == "frames" {
 		return events.LambdaFunctionURLResponse{
 			StatusCode: 401,
