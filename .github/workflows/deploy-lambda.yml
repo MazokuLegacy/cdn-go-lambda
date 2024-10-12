@@ -14,7 +14,7 @@ jobs:
         with:
           go-version: "1.23.2"
       - run: GOOS=linux GOARCH=amd64 go build -o bootstrap lambda/main.go
-      - run: zip function.zip bootstrap bin/
+      - run: zip function.zip bootstrap -r bin/
       - uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
