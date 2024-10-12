@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -17,6 +19,17 @@ import (
 )
 
 func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
+
+	cmd := exec.Command("ffmpeg", "-version")
+	output, err := cmd.CombinedOutput()
+
+	if handleFatalError(err, "no ffmpeg") {
+		return internalServerError("no ffmpeg")
+	}
+
+	fmt.Println("FFmpeg version information:")
+	fmt.Println(string(output))
+
 	pathArr := strings.Split(event.RawPath, "/")[1:]
 	if pathArr[0] == "frames" {
 		return events.LambdaFunctionURLResponse{
@@ -42,6 +55,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	if pathArr[0] != "cards" {
 		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operations, sourceContentType)
 	}
+
 	return events.LambdaFunctionURLResponse{
 		StatusCode: 200,
 		Body:       "nice",
@@ -49,10 +63,6 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 			"Content-Type": "text/plain",
 		},
 	}, nil
-}
-
-func main() {
-	lambda.Start(LambdaHandler)
 }
 
 func fetchS3Object(key string, s3Client *s3.Client) ([]byte, string, error) {
@@ -110,4 +120,10 @@ func handleFatalError(err error, message string) bool {
 		return true
 	}
 	return false
+}
+
+func main() {
+	ffmpegPath := fmt.Sprintf("%s/bin", os.Getenv("LAMBDA_TASK_ROOT"))
+	os.Setenv("PATH", os.Getenv("PATH")+":"+ffmpegPath)
+	lambda.Start(LambdaHandler)
 }

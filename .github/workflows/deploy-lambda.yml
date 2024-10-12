@@ -9,12 +9,12 @@ jobs:
   simple_deployment_pipeline:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
+      - uses: actions/checkout@v4.2.1
+      - uses: actions/setup-go@v5.0.2
         with:
           go-version: "1.23.2"
       - run: GOOS=linux GOARCH=amd64 go build -o bootstrap lambda/main.go
-      - run: zip function.zip bootstrap
+      - run: zip function.zip bootstrap bin/
       - uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
