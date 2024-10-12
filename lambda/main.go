@@ -2,20 +2,25 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"log"
+	"strings"
 )
 
-func LambdHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (string, error) {
-	eventJSON, err := json.Marshal(event)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal event: %v", err)
+func LambdHandler(ctx context.Context, event events.LambdaFunctionURLRequest) events.LambdaFunctionURLResponse {
+	var key = event.RawPath
+	var pathArr = strings.Split(key, "/")
+	if pathArr[0] == "frames" {
+		return events.LambdaFunctionURLResponse{
+			StatusCode: 401,
+			Body:       "Unautharized",
+		}
+
 	}
-	log.Printf("Received event: %s :\n %s", eventJSON, event.RawPath)
-	return "Event processed successfully", nil
+	return events.LambdaFunctionURLResponse{
+		StatusCode: 200,
+		Body:       "nice",
+	}
 }
 
 func main() {
