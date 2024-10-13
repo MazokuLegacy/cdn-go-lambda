@@ -135,10 +135,7 @@ func pngToWebp(input []byte, width int) ([]byte, error) {
 }
 
 func getScale(width int) string {
-	return "scale=" +
-		strconv.Itoa(width) +
-		":" +
-		strconv.Itoa(int(math.Ceil(1.4*float64(width))))
+	return "scale=" + strconv.Itoa(width) + ":-1"
 }
 
 func webmToGif(input []byte, width int) ([]byte, error) {
