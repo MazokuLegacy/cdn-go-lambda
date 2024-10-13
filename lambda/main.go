@@ -5,34 +5,23 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io"
+	"log"
+	"os"
+	"strings"
+
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/modfy/fluent-ffmpeg"
-	"io"
-	"log"
-	"os"
-	"os/exec"
-	"strings"
 )
 
 func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
 
 	ffmpegPath := fmt.Sprintf("%s/bin", os.Getenv("LAMBDA_TASK_ROOT"))
 	os.Setenv("PATH", os.Getenv("PATH")+":"+ffmpegPath)
-
-	cmd := exec.Command("ffmpeg", "-version")
-	output, err := cmd.CombinedOutput()
-
-	if handleFatalError(err, "no ffmpeg") {
-		return internalServerError("no ffmpeg")
-	}
-
-	fmt.Println("FFmpeg version information:")
-	fmt.Println(string(output))
-
 	pathArr := strings.Split(event.RawPath, "/")[1:]
 	if pathArr[0] == "frames" {
 		return events.LambdaFunctionURLResponse{
@@ -77,15 +66,16 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 
 func convertWebMToMP4(input []byte) ([]byte, error) {
 	inputReader := bytes.NewReader(input)
-
+	buf := &bytes.Buffer{}
 	var outputBuffer bytes.Buffer
 
-	err := fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputFormat("mp4").PipeOutput(&outputBuffer).Run()
+	err := fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputFormat("mp4").PipeOutput(&outputBuffer).OutputLogs(buf).Run()
 
 	if err != nil {
 		return nil, err
 	}
-
+	out, _ := io.ReadAll(buf)
+	fmt.Println(string(out))
 	return outputBuffer.Bytes(), nil
 }
 
