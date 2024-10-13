@@ -285,7 +285,7 @@ func convertWebmToMP4(input []byte, width int) ([]byte, error) {
 		"-codec:v", "libvpx-vp9",
 		"-y", "-i", inPath,
 		"-vf", scale,
-		"-c:v", "libx264",
+		"-c:v", "libx265",
 		"-crf", "23",
 		outPath)
 	err = cmd.Start()
