@@ -72,7 +72,7 @@ func convertWebMToMP4(input []byte) ([]byte, error) {
 		return nil, fmt.Errorf("failed to create temp file: %w", err)
 	}
 	defer os.Remove(tempFile.Name())
-	err = fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputFormat("mp4").OutputPath("output.mp4").Overwrite(true).OutputLogs(buf).Run()
+	err = fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputFormat("mp4").OutputPath("tmp/output.mp4").Overwrite(true).OutputLogs(buf).Run()
 	out, _ := io.ReadAll(buf)
 	fmt.Println(string(out))
 	if err != nil {
