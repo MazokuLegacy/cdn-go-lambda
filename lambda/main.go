@@ -57,7 +57,6 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		var err error
 		contentType := sourceContentType
 		if requestedFormat == "webp" {
-			log.Println("hey there i will get called next")
 			output, err = getWebpFromWebm(fetchedObject)
 			if handleFatalError(err, "failed to convert to webp") {
 				return internalServerError("failed to convert to webp")
@@ -83,30 +82,34 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 }
 
 func getWebpFromWebm(input []byte) ([]byte, error) {
-	log.Println("hey there i got called")
 	inputReader := bytes.NewReader(input)
-	filepath := "/tmp/output.webp"
-	file, err := os.Create(filepath)
+	inPath := "/tmp/input.webm"
+	outPath := "/tmp/output.webp"
+	inFile, err := os.Create(inPath)
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
-	defer os.Remove(filepath)
-	log.Println("hey there")
-	cmd := exec.Command("ffmpeg", "-loglevel", "error", "-y", "-i", "pipe:0", "-vframes", "1", "-ss", "0", filepath)
+	defer inFile.Close()
+	defer os.Remove(inPath)
+	inFile.Write(input)
+	outFile, err := os.Create(outPath)
+	if err != nil {
+		return nil, err
+	}
+	defer outFile.Close()
+	defer os.Remove(outPath)
+	cmd := exec.Command("ffmpeg", "-loglevel", "error", "-y", "-i", inPath, "-vframes", "1", "-ss", "0", outPath)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		fmt.Println("Error creating stdin pipe:", err)
 		return nil, err
 	}
-	log.Println("why hello")
 	err = cmd.Start()
 	if err != nil {
 		fmt.Println("Error starting command:", err)
 		return nil, err
 	}
 
-	log.Println("started")
 	_, err = io.Copy(stdin, inputReader)
 	if err != nil {
 		fmt.Println("Error writing to stdin:", err)
@@ -127,7 +130,7 @@ func getWebpFromWebm(input []byte) ([]byte, error) {
 		return nil, err
 	}
 	log.Println("completed")
-	output, err := io.ReadAll(file)
+	output, err := io.ReadAll(outFile)
 	return output, nil
 }
 
