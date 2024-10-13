@@ -40,6 +40,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		return internalServerError("failed to load config")
 	}
 	s3Client := s3.NewFromConfig(cfg)
+	log.Println(key)
 	fetchedObject, sourceContentType, err := fetchS3Object(key, s3Client)
 	if handleFatalError(err, "failed to fetch original image") {
 		return internalServerError("failed to fetch original image")
