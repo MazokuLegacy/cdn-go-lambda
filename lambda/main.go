@@ -18,7 +18,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/modfy/fluent-ffmpeg"
 )
 
 func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
@@ -58,8 +57,8 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	if handleFatalError(err, "width is not a valid number") {
 		return internalServerError("width is not a valid number")
 	}
-	if requestedWidth > 1500 {
-		requestedWidth = 1500
+	if requestedWidth > 750 {
+		requestedWidth = 750
 	}
 	if sourceContentType == "video/webm" {
 		output := bytes.Clone(fetchedObject)
@@ -136,10 +135,10 @@ func pngToWebp(input []byte, width int) ([]byte, error) {
 }
 
 func getScale(width int) string {
-	return "scale=iw/" +
-		strconv.Itoa(int(math.Ceil(float64(1500)/float64(width)))) +
-		":" + "ih/" +
-		strconv.Itoa(int(math.Ceil(float64(2100)/(float64(2100)*(float64(width)/float64(1500))))))
+	return "scale=" +
+		strconv.Itoa(width) +
+		":" +
+		strconv.Itoa(int(math.Ceil(1.4*float64(width))))
 }
 
 func webmToGif(input []byte, width int) ([]byte, error) {
