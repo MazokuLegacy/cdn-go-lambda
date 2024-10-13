@@ -46,6 +46,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	operationString := pathArr[lastIndex]
 	operationsMap := getOperationsMap(operationString)
 	requestedContentType := operationsMap["format"]
+	log.Println(requestedContentType)
 	if pathArr[0] != "cards" || requestedContentType == sourceContentType {
 		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operationString, sourceContentType)
 	}
