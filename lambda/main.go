@@ -89,7 +89,7 @@ func getWebpFromWebm(input []byte) ([]byte, error) {
 	}
 	defer file.Close()
 	defer os.Remove(filepath)
-	cmd := exec.Command("ffmpeg", "-y", "-ss", "0", "-i", "-", "-vframes", "1", "output.webp")
+	cmd := exec.Command("ffmpeg", "-y", "-ss", "0", "-i", "-", "-vframes", "1", filepath)
 	cmd.Stdin = inputReader
 	err = cmd.Start()
 	if err != nil {
