@@ -90,33 +90,38 @@ func getWebpFromWebm(input []byte) ([]byte, error) {
 	}
 	defer file.Close()
 	defer os.Remove(filepath)
+	log.Println("hey there")
 	cmd := exec.Command("ffmpeg", "-loglevel", "error", "-y", "-i", "pipe:0", "-vframes", "1", "-ss", "0", filepath)
-
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		fmt.Println("Error creating stdin pipe:", err)
 		return nil, err
 	}
+	log.Println("why hello")
 
 	if err := cmd.Start(); err != nil {
 		fmt.Println("Error starting command:", err)
 		return nil, err
 	}
 
+	log.Println("started")
 	if _, err := io.Copy(stdin, inputReader); err != nil {
 		fmt.Println("Error writing to stdin:", err)
 		return nil, err
 	}
 
+	log.Println("copied")
 	if err := stdin.Close(); err != nil {
 		fmt.Println("Error closing stdin:", err)
 		return nil, err
 	}
 
+	log.Println("closed")
 	if err := cmd.Wait(); err != nil {
 		fmt.Println("Error waiting for command:", err)
 		return nil, err
 	}
+	log.Println("completed")
 	output, err := io.ReadAll(file)
 	return output, nil
 }
