@@ -58,7 +58,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		contentType := sourceContentType
 		switch requestedFormat {
 		case "webm":
-			return storeAndReturnTransformedMedia(output, s3Client, key, operationString, contentType)
+			return storeAndReturnTransformedMedia(output, s3Client, key, operationString, "image/webp")
 		case "mp4":
 			output, err = convertWebMToMP4(fetchedObject)
 			if handleFatalError(err, "failed to convert to mp4") {
