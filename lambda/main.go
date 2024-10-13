@@ -67,7 +67,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 func convertWebMToMP4(input []byte) ([]byte, error) {
 	inputReader := bytes.NewReader(input)
 	buf := &bytes.Buffer{}
-	tempFile, err := os.CreateTemp("", "output.mp4")
+	tempFile, err := os.CreateTemp("/tmp", "output.mp4")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp file: %w", err)
 	}
