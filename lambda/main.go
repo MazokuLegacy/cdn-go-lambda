@@ -49,7 +49,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	operationsMap := getOperationsMap(operationString)
 	requestedFormat := operationsMap["format"]
 	log.Println(requestedFormat)
-	if pathArr[0] != "cards" || requestedFormat == strings.Split(sourceContentType, "/")[1] {
+	if pathArr[0] != "cards" {
 		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operationString, sourceContentType)
 	}
 	if sourceContentType == "video/webm" {
