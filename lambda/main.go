@@ -73,13 +73,13 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 			}
 			contentType = "image/png"
 		case "webp":
-			output, err = getWebpFromWebm(fetchedObject)
+			output, err = getWebpFromWebm(fetchedObject, requestedWidth)
 			if handleFatalError(err, "failed to convert to webp") {
 				return internalServerError("failed to convert to webp")
 			}
 			contentType = "image/" + requestedFormat
 		case "mp4":
-			output, err = convertWebmToMP4(fetchedObject)
+			output, err = convertWebmToMP4(fetchedObject, requestedWidth)
 			if handleFatalError(err, "failed to convert to mp4") {
 				return internalServerError("failed to convert to mp4")
 			}
@@ -181,7 +181,7 @@ func webmToGif(input []byte, width int) ([]byte, error) {
 	return output, nil
 }
 
-func getWebpFromWebm(input []byte) ([]byte, error) {
+func getWebpFromWebm(input []byte, width int) ([]byte, error) {
 	inPath := "/tmp/input.webm"
 	outPath := "/tmp/output.webp"
 	inFile, err := os.Create(inPath)
@@ -197,7 +197,14 @@ func getWebpFromWebm(input []byte) ([]byte, error) {
 	}
 	defer outFile.Close()
 	defer os.Remove(outPath)
-	cmd := exec.Command("ffmpeg", "-codec:v", "libvpx-vp9", "-y", "-i", inPath, "-vframes", "1", "-ss", "0", outPath)
+	scale := getScale(width)
+	cmd := exec.Command("ffmpeg",
+		"-codec:v", "libvpx-vp9",
+		"-y", "-i", inPath,
+		"-vframes", "1",
+		"-vf", scale,
+		"-ss", "0",
+		outPath)
 	err = cmd.Start()
 	if err != nil {
 		fmt.Println("Error starting command:", err)
@@ -213,19 +220,41 @@ func getWebpFromWebm(input []byte) ([]byte, error) {
 	return output, nil
 }
 
-func convertWebmToMP4(input []byte) ([]byte, error) {
-	outPath := "/tmp/output.mp4"
-	inputReader := bytes.NewReader(input)
+func convertWebmToMP4(input []byte, width int) ([]byte, error) {
+	inPath := "/tmp/input.webm"
+	outPath := "/tmp/output.webp"
+	inFile, err := os.Create(inPath)
+	if err != nil {
+		return nil, err
+	}
+	defer inFile.Close()
+	defer os.Remove(inPath)
+	inFile.Write(input)
 	outFile, err := os.Create(outPath)
 	if err != nil {
 		return nil, err
 	}
 	defer outFile.Close()
 	defer os.Remove(outPath)
-	err = fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputFormat("mp4").OutputPath(outPath).Overwrite(true).Run()
+	scale := getScale(width)
+	cmd := exec.Command("ffmpeg",
+		"-codec:v", "libvpx-vp9",
+		"-y", "-i", inPath,
+		"-vf", scale,
+		"-c:v", "libx265",
+		"-crf", "23",
+		outPath)
+	err = cmd.Start()
 	if err != nil {
+		fmt.Println("Error starting command:", err)
 		return nil, err
 	}
+	err = cmd.Wait()
+	if err != nil {
+		fmt.Println("Error waiting for command:", err)
+		return nil, err
+	}
+	log.Println("completed")
 	output, err := io.ReadAll(outFile)
 	return output, nil
 }
