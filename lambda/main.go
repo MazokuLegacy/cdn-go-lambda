@@ -87,9 +87,13 @@ func getWebpFromWebm(input []byte) ([]byte, error) {
 		return nil, err
 	}
 	defer file.Close()
+	buf := &bytes.Buffer{}
 	defer os.Remove(filepath)
-	err = fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputOptions("--ss 00:00:00").OutputFormat("webp").OutputPath(filepath).Run()
+	err = fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputOptions("--ss 00:00:00").OutputFormat("webp").OutputPath(filepath).Overwrite(true).
+		OutputLogs(buf).Run()
+	out, _ := io.ReadAll(buf)
 	if err != nil {
+		fmt.Println(string(out))
 		return nil, err
 	}
 	output, err := io.ReadAll(file)
