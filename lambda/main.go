@@ -57,6 +57,12 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		var err error
 		contentType := sourceContentType
 		switch requestedFormat {
+		case "apng":
+			output, err = webmToApng(fetchedObject)
+			if handleFatalError(err, "failed to convert to png") {
+				return internalServerError("failed to convert to png")
+			}
+			contentType = "image/png"
 		case "webp":
 			output, err = getWebpFromWebm(fetchedObject)
 			if handleFatalError(err, "failed to convert to webp") {
@@ -64,7 +70,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 			}
 			contentType = "image/" + requestedFormat
 		case "mp4":
-			output, err = convertWebMToMP4(fetchedObject)
+			output, err = convertWebmToMP4(fetchedObject)
 			if handleFatalError(err, "failed to convert to mp4") {
 				return internalServerError("failed to convert to mp4")
 			}
@@ -79,6 +85,38 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 			"Content-Type": "text/plain",
 		},
 	}, nil
+}
+
+func webmToApng(input []byte) ([]byte, error) {
+	inPath := "/tmp/input.webm"
+	outPath := "/tmp/output.png"
+	inFile, err := os.Create(inPath)
+	if err != nil {
+		return nil, err
+	}
+	defer inFile.Close()
+	defer os.Remove(inPath)
+	inFile.Write(input)
+	outFile, err := os.Create(outPath)
+	if err != nil {
+		return nil, err
+	}
+	defer outFile.Close()
+	defer os.Remove(outPath)
+	cmd := exec.Command("ffmpeg", "-codec:v", "libvpx-vp9", "-y", "-i", inPath, "-plays", "0", "-f", "apng", outPath)
+	err = cmd.Start()
+	if err != nil {
+		fmt.Println("Error starting command:", err)
+		return nil, err
+	}
+	err = cmd.Wait()
+	if err != nil {
+		fmt.Println("Error waiting for command:", err)
+		return nil, err
+	}
+	log.Println("completed")
+	output, err := io.ReadAll(outFile)
+	return output, nil
 }
 
 func getWebpFromWebm(input []byte) ([]byte, error) {
@@ -113,7 +151,7 @@ func getWebpFromWebm(input []byte) ([]byte, error) {
 	return output, nil
 }
 
-func convertWebMToMP4(input []byte) ([]byte, error) {
+func convertWebmToMP4(input []byte) ([]byte, error) {
 	inPath := "/tmp/input.webm"
 	outPath := "/tmp/output.mp4"
 	inFile, err := os.Create(inPath)
@@ -130,7 +168,6 @@ func convertWebMToMP4(input []byte) ([]byte, error) {
 	defer outFile.Close()
 	defer os.Remove(outPath)
 	err = fluentffmpeg.NewCommand("").InputPath(inPath).OutputFormat("mp4").OutputPath(outPath).Overwrite(true).Run()
-
 	if err != nil {
 		return nil, err
 	}
