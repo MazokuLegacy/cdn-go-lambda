@@ -26,7 +26,6 @@ func webmToGif(input []byte, width int) ([]byte, error) {
 	defer os.Remove(outPath)
 	scale := getScale(width)
 	cmd := exec.Command("ffmpeg",
-		"-codec:v", "libvpx",
 		"-y",
 		"-i", inPath,
 		"-vf", scale,
