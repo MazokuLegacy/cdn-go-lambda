@@ -28,7 +28,7 @@ func webmToGif(input []byte, width int) ([]byte, error) {
 	cmd := exec.Command("ffmpeg",
 		"-y",
 		"-i", inPath,
-		"-vf", scale,
+		"-vf", scale+":flags=lanczos,split[video][video2];[video2]palettegen[p];[video][p]paletteuse",
 		"-loop", "0",
 		outPath)
 	err = cmd.Start()
