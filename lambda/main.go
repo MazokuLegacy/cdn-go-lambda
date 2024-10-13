@@ -57,21 +57,18 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		var err error
 		contentType := sourceContentType
 		switch requestedFormat {
-		case "webm":
-			return storeAndReturnTransformedMedia(output, s3Client, key, operationString, contentType)
+		case "webp":
+			output, err = getWebpFromWebm(fetchedObject)
+			if handleFatalError(err, "failed to convert to webp") {
+				return internalServerError("failed to convert to webp")
+			}
+			contentType = "image/" + requestedFormat
 		case "mp4":
 			output, err = convertWebMToMP4(fetchedObject)
 			if handleFatalError(err, "failed to convert to mp4") {
 				return internalServerError("failed to convert to mp4")
 			}
 			contentType = "video/" + requestedFormat
-		default:
-			output, err = getWebpFromWebm(fetchedObject)
-			if handleFatalError(err, "failed to convert to webp") {
-				return internalServerError("failed to convert to webp")
-			}
-			contentType = "image/webp"
-
 		}
 		return storeAndReturnTransformedMedia(output, s3Client, key, operationString, contentType)
 	}
@@ -117,20 +114,27 @@ func getWebpFromWebm(input []byte) ([]byte, error) {
 }
 
 func convertWebMToMP4(input []byte) ([]byte, error) {
-	inputReader := bytes.NewReader(input)
-	filePath := "/tmp/output.mp4"
-	file, err := os.Create(filePath)
+	inPath := "/tmp/input.webm"
+	outPath := "/tmp/output.mp4"
+	inFile, err := os.Create(inPath)
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
-	defer os.Remove(filePath)
-	err = fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputFormat("mp4").OutputPath(filePath).Overwrite(true).Run()
+	defer inFile.Close()
+	defer os.Remove(inPath)
+	inFile.Write(input)
+	outFile, err := os.Create(outPath)
+	if err != nil {
+		return nil, err
+	}
+	defer outFile.Close()
+	defer os.Remove(outPath)
+	err = fluentffmpeg.NewCommand("").InputPath(inPath).OutputFormat("mp4").OutputPath(outPath).Overwrite(true).Run()
 
 	if err != nil {
 		return nil, err
 	}
-	output, err := io.ReadAll(file)
+	output, err := io.ReadAll(outFile)
 	return output, nil
 }
 
