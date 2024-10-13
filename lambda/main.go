@@ -17,7 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/h2non/bimg"
 	"github.com/modfy/fluent-ffmpeg"
 )
 
@@ -67,7 +66,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		contentType := sourceContentType
 		switch requestedFormat {
 		case "gif":
-			output, err = webmToGif(fetchedObject)
+			output, err = webmToGif(fetchedObject, requestedWidth)
 			if handleFatalError(err, "failed to convert to png") {
 				return internalServerError("failed to convert to png")
 			}
@@ -95,23 +94,50 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 }
 
 func pngToWebp(input []byte, width int) ([]byte, error) {
-	img := bimg.NewImage(input)
-	inSize, err := img.Size()
+	inPath := "/tmp/input.png"
+	outPath := "/tmp/output.webp"
+	inFile, err := os.Create(inPath)
 	if err != nil {
 		return nil, err
 	}
-	resized, err := img.Resize(width, inSize.Height/inSize.Width*width)
+	defer inFile.Close()
+	defer os.Remove(inPath)
+	inFile.Write(input)
+	outFile, err := os.Create(outPath)
 	if err != nil {
 		return nil, err
 	}
-	output, err := bimg.NewImage(resized).Convert(bimg.WEBP)
+	defer outFile.Close()
+	defer os.Remove(outPath)
+	scale := getScale(width)
+	cmd := exec.Command("ffmpeg",
+		"-y",
+		"-i", inPath,
+		"-c:v", "libwebp",
+		"-quality", "80",
+		"-vf", scale,
+		"-pix_fmt", "yuva420p",
+		outPath)
+	err = cmd.Start()
 	if err != nil {
+		fmt.Println("Error starting command:", err)
 		return nil, err
 	}
+	err = cmd.Wait()
+	if err != nil {
+		fmt.Println("Error waiting for command:", err)
+		return nil, err
+	}
+	log.Println("completed")
+	output, err := io.ReadAll(outFile)
 	return output, nil
 }
 
-func webmToGif(input []byte) ([]byte, error) {
+func getScale(width int) string {
+	return "scale=iw/" + string(1500/width) + ":" + "ih/" + string(2100*width/1500)
+}
+
+func webmToGif(input []byte, width int) ([]byte, error) {
 	inPath := "/tmp/input.webm"
 	outPath := "/tmp/output.gif"
 	inFile, err := os.Create(inPath)
@@ -127,11 +153,12 @@ func webmToGif(input []byte) ([]byte, error) {
 	}
 	defer outFile.Close()
 	defer os.Remove(outPath)
+	scale := getScale(width)
 	cmd := exec.Command("ffmpeg",
 		"-codec:v", "libvpx-vp9",
 		"-y",
 		"-i", inPath,
-		"-vf", "scale=iw/3:ih/3,split=2[a][b];[b]palettegen[p];[a][p]paletteuse",
+		"-vf", scale,
 		"-loop", "0",
 		outPath)
 	err = cmd.Start()
@@ -182,22 +209,15 @@ func getWebpFromWebm(input []byte) ([]byte, error) {
 }
 
 func convertWebmToMP4(input []byte) ([]byte, error) {
-	inPath := "/tmp/input.webm"
 	outPath := "/tmp/output.mp4"
-	inFile, err := os.Create(inPath)
-	if err != nil {
-		return nil, err
-	}
-	defer inFile.Close()
-	defer os.Remove(inPath)
-	inFile.Write(input)
+	inputReader := bytes.NewReader(input)
 	outFile, err := os.Create(outPath)
 	if err != nil {
 		return nil, err
 	}
 	defer outFile.Close()
 	defer os.Remove(outPath)
-	err = fluentffmpeg.NewCommand("").InputPath(inPath).OutputFormat("mp4").OutputPath(outPath).Overwrite(true).Run()
+	err = fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputFormat("mp4").OutputPath(outPath).Overwrite(true).Run()
 	if err != nil {
 		return nil, err
 	}
