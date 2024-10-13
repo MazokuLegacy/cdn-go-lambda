@@ -117,37 +117,20 @@ func getWebpFromWebm(input []byte) ([]byte, error) {
 }
 
 func convertWebMToMP4(input []byte) ([]byte, error) {
-	inPath := "/tmp/input.webm"
-	outPath := "/tmp/output.mp4"
-	inFile, err := os.Create(inPath)
+	inputReader := bytes.NewReader(input)
+	filePath := "/tmp/output.mp4"
+	file, err := os.Create(filePath)
 	if err != nil {
 		return nil, err
 	}
-	defer inFile.Close()
-	defer os.Remove(inPath)
-	outFile, err := os.Create(outPath)
+	defer file.Close()
+	defer os.Remove(filePath)
+	err = fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputFormat("mp4").OutputPath(filePath).Overwrite(true).Run()
+
 	if err != nil {
 		return nil, err
 	}
-	defer outFile.Close()
-	defer os.Remove(outPath)
-	inFile.Write(input)
-	cmd := exec.Command("ffmpeg", "-codec:v", "libvpx-vp9", "-y", "-i", inPath, outPath)
-	if err != nil {
-		return nil, err
-	}
-	err = cmd.Start()
-	if err != nil {
-		fmt.Println("Error starting command:", err)
-		return nil, err
-	}
-	err = cmd.Wait()
-	if err != nil {
-		fmt.Println("Error waiting for command:", err)
-		return nil, err
-	}
-	log.Println("completed")
-	output, err := io.ReadAll(outFile)
+	output, err := io.ReadAll(file)
 	return output, nil
 }
 
