@@ -56,19 +56,22 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		output := bytes.Clone(fetchedObject)
 		var err error
 		contentType := sourceContentType
-		if requestedFormat == "webp" {
-			output, err = getWebpFromWebm(fetchedObject)
-			if handleFatalError(err, "failed to convert to webp") {
-				return internalServerError("failed to convert to webp")
-			}
-			contentType = "image/" + requestedFormat
-		}
-		if requestedFormat == "mp4" {
+		switch requestedFormat {
+		case "webm":
+			return storeAndReturnTransformedMedia(output, s3Client, key, operationString, contentType)
+		case "mp4":
 			output, err = convertWebMToMP4(fetchedObject)
 			if handleFatalError(err, "failed to convert to mp4") {
 				return internalServerError("failed to convert to mp4")
 			}
 			contentType = "video/" + requestedFormat
+		default:
+			output, err = getWebpFromWebm(fetchedObject)
+			if handleFatalError(err, "failed to convert to webp") {
+				return internalServerError("failed to convert to webp")
+			}
+			contentType = "image/" + requestedFormat
+
 		}
 		return storeAndReturnTransformedMedia(output, s3Client, key, operationString, contentType)
 	}
@@ -97,7 +100,7 @@ func getWebpFromWebm(input []byte) ([]byte, error) {
 	}
 	defer outFile.Close()
 	defer os.Remove(outPath)
-	cmd := exec.Command("ffmpeg", "-codec:v", "libvpx-vp9", "-loglevel", "error", "-y", "-i", inPath, "-vframes", "1", "-ss", "0", outPath)
+	cmd := exec.Command("ffmpeg", "-codec:v", "libvpx-vp9", "-y", "-i", inPath, "-vframes", "1", "-ss", "0", outPath)
 	err = cmd.Start()
 	if err != nil {
 		fmt.Println("Error starting command:", err)
@@ -122,7 +125,8 @@ func convertWebMToMP4(input []byte) ([]byte, error) {
 	}
 	defer file.Close()
 	defer os.Remove(filePath)
-	err = fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputFormat("mp4").OutputPath(filePath).Overwrite(true).Run()
+	err = fluentffmpeg.NewCommand("").VideoCodec("libvpx-vp9").PipeInput(inputReader).OutputFormat("mp4").OutputPath(filePath).Overwrite(true).Run()
+
 	if err != nil {
 		return nil, err
 	}
