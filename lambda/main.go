@@ -67,18 +67,20 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 func convertWebMToMP4(input []byte) ([]byte, error) {
 	inputReader := bytes.NewReader(input)
 	buf := &bytes.Buffer{}
-	tempFile, err := os.CreateTemp("/tmp", "output.mp4")
+	filePath := "/tmp/output.mp4"
+	file, err := os.Create(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp file: %w", err)
 	}
-	defer os.Remove(tempFile.Name())
-	err = fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputFormat("mp4").OutputPath("tmp/output.mp4").Overwrite(true).OutputLogs(buf).Run()
+	defer file.Close()
+	defer os.Remove(filePath)
+	err = fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputFormat("mp4").OutputPath(filePath).Overwrite(true).OutputLogs(buf).Run()
 	out, _ := io.ReadAll(buf)
 	fmt.Println(string(out))
 	if err != nil {
 		return nil, err
 	}
-	output, err := io.ReadAll(tempFile)
+	output, err := io.ReadAll(file)
 	return output, nil
 }
 
