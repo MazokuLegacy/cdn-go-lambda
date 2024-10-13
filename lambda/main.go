@@ -282,7 +282,6 @@ func convertWebmToMP4(input []byte, width int) ([]byte, error) {
 	defer os.Remove(outPath)
 	scale := getScale(width)
 	cmd := exec.Command("ffmpeg",
-		"-codec:v", "libvpx-vp9",
 		"-y", "-i", inPath,
 		"-vf", scale,
 		"-c:v", "libx265",
