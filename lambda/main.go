@@ -40,7 +40,6 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		return internalServerError("failed to load config")
 	}
 	s3Client := s3.NewFromConfig(cfg)
-	log.Println(key)
 	fetchedObject, sourceContentType, err := fetchS3Object(key, s3Client)
 	if handleFatalError(err, "failed to fetch original image") {
 		return internalServerError("failed to fetch original image")
@@ -48,7 +47,6 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	operationString := pathArr[lastIndex]
 	operationsMap := getOperationsMap(operationString)
 	requestedFormat := operationsMap["format"]
-	log.Println(requestedFormat)
 	if pathArr[0] != "cards" {
 		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operationString, sourceContentType)
 	}
@@ -126,7 +124,8 @@ func scaleWebm(input []byte, width int) ([]byte, error) {
 		"-y",
 		"-i", inPath,
 		"-vf", scale,
-		"-an",
+		"-crf", "10",
+		"-b:v", "1M",
 		outPath)
 	err = cmd.Start()
 	if err != nil {
