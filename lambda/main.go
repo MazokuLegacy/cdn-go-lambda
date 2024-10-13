@@ -120,12 +120,12 @@ func scaleWebm(input []byte, width int) ([]byte, error) {
 	defer os.Remove(outPath)
 	scale := getScale(width)
 	cmd := exec.Command("ffmpeg",
-		"-codec:v", "libvpx",
 		"-y",
 		"-i", inPath,
 		"-vf", scale,
-		"-crf", "10",
+		"-codec:v", "libvpx",
 		"-b:v", "1M",
+		"-deadline", "good",
 		outPath)
 	err = cmd.Start()
 	if err != nil {
