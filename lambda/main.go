@@ -87,11 +87,13 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 			}
 			contentType = "video/" + requestedFormat
 		default:
-			output, err = scaleWebm(fetchedObject, requestedWidth)
-			if handleFatalError(err, "failed to convert to mp4") {
-				return internalServerError("failed to convert to mp4")
+			if requestedWidth != 750 {
+				output, err = scaleWebm(fetchedObject, requestedWidth)
+				if handleFatalError(err, "failed to convert to mp4") {
+					return internalServerError("failed to convert to mp4")
+				}
+				contentType = "video/webm"
 			}
-			contentType = "video/webm"
 		}
 		return storeAndReturnTransformedMedia(output, s3Client, key, operationString, contentType)
 	}
@@ -120,10 +122,11 @@ func scaleWebm(input []byte, width int) ([]byte, error) {
 	defer os.Remove(outPath)
 	scale := getScale(width)
 	cmd := exec.Command("ffmpeg",
-		"-codec:v", "libvpx-vp9",
+		"-codec:v", "libvpx",
 		"-y",
 		"-i", inPath,
 		"-vf", scale,
+		"-an",
 		outPath)
 	err = cmd.Start()
 	if err != nil {
@@ -202,7 +205,7 @@ func webmToGif(input []byte, width int) ([]byte, error) {
 	defer os.Remove(outPath)
 	scale := getScale(width)
 	cmd := exec.Command("ffmpeg",
-		"-codec:v", "libvpx-vp9",
+		"-codec:v", "libvpx",
 		"-y",
 		"-i", inPath,
 		"-vf", scale,
@@ -241,7 +244,7 @@ func getWebpFromWebm(input []byte, width int) ([]byte, error) {
 	defer os.Remove(outPath)
 	scale := getScale(width)
 	cmd := exec.Command("ffmpeg",
-		"-codec:v", "libvpx-vp9",
+		"-codec:v", "libvpx",
 		"-y", "-i", inPath,
 		"-vframes", "1",
 		"-vf", scale,
@@ -285,6 +288,7 @@ func convertWebmToMP4(input []byte, width int) ([]byte, error) {
 		"-vf", scale,
 		"-c:v", "libx265",
 		"-crf", "23",
+		"-an",
 		outPath)
 	err = cmd.Start()
 	if err != nil {
