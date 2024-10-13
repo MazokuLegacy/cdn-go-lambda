@@ -45,28 +45,28 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	}
 	operationString := pathArr[lastIndex]
 	operationsMap := getOperationsMap(operationString)
-	requestedContentType := operationsMap["format"]
-	log.Println(requestedContentType)
-	if pathArr[0] != "cards" || requestedContentType == sourceContentType {
+	requestedFormat := operationsMap["format"]
+	log.Println(requestedFormat)
+	if pathArr[0] != "cards" || requestedFormat == strings.Split(sourceContentType, "/")[1] {
 		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operationString, sourceContentType)
 	}
 	if sourceContentType == "video/webm" {
 		output := bytes.Clone(fetchedObject)
 		var err error
 		contentType := sourceContentType
-		if requestedContentType == "image/webp" {
+		if requestedFormat == "webp" {
 			output, err = getWebpFromWebm(fetchedObject)
 			if handleFatalError(err, "failed to convert to webp") {
 				return internalServerError("failed to convert to webp")
 			}
-			contentType = requestedContentType
+			contentType = "image/" + requestedFormat
 		}
-		if requestedContentType == "video/mp4" {
+		if requestedFormat == "mp4" {
 			output, err = convertWebMToMP4(fetchedObject)
 			if handleFatalError(err, "failed to convert to mp4") {
 				return internalServerError("failed to convert to mp4")
 			}
-			contentType = requestedContentType
+			contentType = "video/" + requestedFormat
 		}
 		return storeAndReturnTransformedMedia(output, s3Client, key, operationString, contentType)
 	}
