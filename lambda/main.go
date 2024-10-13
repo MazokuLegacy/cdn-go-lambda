@@ -57,6 +57,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		var err error
 		contentType := sourceContentType
 		if requestedFormat == "webp" {
+			log.Println("hey there i will get called next")
 			output, err = getWebpFromWebm(fetchedObject)
 			if handleFatalError(err, "failed to convert to webp") {
 				return internalServerError("failed to convert to webp")
@@ -82,6 +83,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 }
 
 func getWebpFromWebm(input []byte) ([]byte, error) {
+	log.Println("hey there i got called")
 	inputReader := bytes.NewReader(input)
 	filepath := "/tmp/output.webp"
 	file, err := os.Create(filepath)
