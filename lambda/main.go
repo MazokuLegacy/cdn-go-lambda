@@ -5,17 +5,17 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io"
-	"log"
-	"os"
-	"os/exec"
-	"strings"
-
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/modfy/fluent-ffmpeg"
+	"io"
+	"log"
+	"os"
+	"os/exec"
+	"strings"
 )
 
 func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
@@ -59,6 +59,13 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operations, sourceContentType)
 	}
 
+	if sourceContentType == "video/webm" {
+		mp4, err := convertWebMToMP4(fetchedObject)
+		if handleFatalError(err, "failed to convert to mp4") {
+			return internalServerError("failed to convert to mp4")
+		}
+		storeAndReturnTransformedMedia(mp4, s3Client, key, operations, sourceContentType)
+	}
 	return events.LambdaFunctionURLResponse{
 		StatusCode: 200,
 		Body:       "nice",
@@ -66,6 +73,20 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 			"Content-Type": "text/plain",
 		},
 	}, nil
+}
+
+func convertWebMToMP4(input []byte) ([]byte, error) {
+	inputReader := bytes.NewReader(input)
+
+	var outputBuffer bytes.Buffer
+
+	err := fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputFormat("mp4").PipeOutput(&outputBuffer).Run()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return outputBuffer.Bytes(), nil
 }
 
 func fetchS3Object(key string, s3Client *s3.Client) ([]byte, string, error) {
@@ -86,8 +107,8 @@ func fetchS3Object(key string, s3Client *s3.Client) ([]byte, string, error) {
 	return body, contentType, nil
 }
 
-func storeAndReturnTransformedMedia(object []byte, s3Cleint *s3.Client, key string, operations string, contentType string) (events.LambdaFunctionURLResponse, error) {
-	_, err := s3Cleint.PutObject(context.TODO(), &s3.PutObjectInput{
+func storeAndReturnTransformedMedia(object []byte, s3Client *s3.Client, key string, operations string, contentType string) (events.LambdaFunctionURLResponse, error) {
+	_, err := s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket:      aws.String(os.Getenv("transformedImageBucketName")),
 		Key:         aws.String(key + "/" + operations),
 		Body:        bytes.NewReader(object),
