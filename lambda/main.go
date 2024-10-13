@@ -55,7 +55,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	}
 	width := operationsMap["width"]
 	if width == "" {
-		width == "750"
+		width = "750"
 	}
 	requestedWidth, err := strconv.Atoi(operationsMap["width"])
 	if handleFatalError(err, "width is not a valid number") {
