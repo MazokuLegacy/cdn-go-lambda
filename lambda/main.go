@@ -45,11 +45,11 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	if pathArr[0] != "cards" {
 		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operationString, sourceContentType)
 	}
-	width := operationsMap["width"]
-	if width == "" {
+	width, ok := operationsMap["width"]
+	if !ok {
 		width = "750"
 	}
-	requestedWidth, err := strconv.Atoi(operationsMap["width"])
+	requestedWidth, err := strconv.Atoi(width)
 	if handleFatalError(err, "width is not a valid number") {
 		return internalServerError("width is not a valid number")
 	}
