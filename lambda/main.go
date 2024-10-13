@@ -34,7 +34,6 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	}
 	lastIndex := len(pathArr) - 1
 	key := strings.Join(pathArr[:lastIndex], "/")
-	operations := pathArr[lastIndex]
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
 	if handleFatalError(err, "failed to load config") {
 		return internalServerError("failed to load config")
@@ -44,10 +43,11 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	if handleFatalError(err, "failed to fetch original image") {
 		return internalServerError("failed to fetch original image")
 	}
-	requestedContentType := event.Headers["Content-Type"]
-	log.Println(requestedContentType)
+	operationString := pathArr[lastIndex]
+	operationsMap := getOperationsMap(operationString)
+	requestedContentType := operationsMap["format"]
 	if pathArr[0] != "cards" || requestedContentType == sourceContentType {
-		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operations, sourceContentType)
+		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operationString, sourceContentType)
 	}
 	if sourceContentType == "video/webm" {
 		output := bytes.Clone(fetchedObject)
@@ -67,7 +67,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 			}
 			contentType = requestedContentType
 		}
-		return storeAndReturnTransformedMedia(output, s3Client, key, operations, contentType)
+		return storeAndReturnTransformedMedia(output, s3Client, key, operationString, contentType)
 	}
 	return events.LambdaFunctionURLResponse{
 		StatusCode: 200,
@@ -149,6 +149,20 @@ func storeAndReturnTransformedMedia(object []byte, s3Client *s3.Client, key stri
 		},
 		IsBase64Encoded: true,
 	}, nil
+}
+
+func getOperationsMap(operationString string) (operations map[string]string) {
+	result := make(map[string]string)
+	pairs := strings.Split(input, ",")
+	for _, pair := range pairs {
+		kv := strings.SplitN(pair, "=", 2)
+		if len(kv) == 2 {
+			key := kv[0]
+			value := kv[1]
+			result[key] = value
+		}
+	}
+	return result
 }
 
 func internalServerError(message string) (events.LambdaFunctionURLResponse, error) {
