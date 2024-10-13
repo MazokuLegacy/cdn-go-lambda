@@ -52,6 +52,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	if sourceContentType == "video/webm" {
 		output := bytes.Clone(fetchedObject)
 		var err error
+		fmt.Println(requestedContentType)
 		contentType := sourceContentType
 		if requestedContentType == "image/webp" {
 			output, err = getWebpFromWebm(fetchedObject)
