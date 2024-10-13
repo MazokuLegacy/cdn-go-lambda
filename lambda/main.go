@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -16,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/h2non/bimg"
 	"github.com/modfy/fluent-ffmpeg"
 )
 
@@ -52,13 +54,20 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	if pathArr[0] != "cards" {
 		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operationString, sourceContentType)
 	}
+	requestedWidth, err := strconv.Atoi(operationsMap["width"])
+	if handleFatalError(err, "width is not a valid number") {
+		return internalServerError("width is not a valid number")
+	}
+	if requestedWidth > 1500 {
+		requestedWidth = 1500
+	}
 	if sourceContentType == "video/webm" {
 		output := bytes.Clone(fetchedObject)
 		var err error
 		contentType := sourceContentType
 		switch requestedFormat {
-		case "apng":
-			output, err = webmToApng(fetchedObject)
+		case "gif":
+			output, err = webmToGif(fetchedObject)
 			if handleFatalError(err, "failed to convert to png") {
 				return internalServerError("failed to convert to png")
 			}
@@ -78,18 +87,33 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		}
 		return storeAndReturnTransformedMedia(output, s3Client, key, operationString, contentType)
 	}
-	return events.LambdaFunctionURLResponse{
-		StatusCode: 200,
-		Body:       "nice",
-		Headers: map[string]string{
-			"Content-Type": "text/plain",
-		},
-	}, nil
+	output, err := pngToWebp(fetchedObject, int(requestedWidth))
+	if handleFatalError(err, "failed to resize and convert to webp") {
+		return internalServerError("failed to resize and convert to webp")
+	}
+	return storeAndReturnTransformedMedia(output, s3Client, key, operationString, "image/webp")
 }
 
-func webmToApng(input []byte) ([]byte, error) {
+func pngToWebp(input []byte, width int) ([]byte, error) {
+	img := bimg.NewImage(input)
+	inSize, err := img.Size()
+	if err != nil {
+		return nil, err
+	}
+	resized, err := img.Resize(width, inSize.Height/inSize.Width*width)
+	if err != nil {
+		return nil, err
+	}
+	output, err := bimg.NewImage(resized).Convert(bimg.WEBP)
+	if err != nil {
+		return nil, err
+	}
+	return output, nil
+}
+
+func webmToGif(input []byte) ([]byte, error) {
 	inPath := "/tmp/input.webm"
-	outPath := "/tmp/output.png"
+	outPath := "/tmp/output.gif"
 	inFile, err := os.Create(inPath)
 	if err != nil {
 		return nil, err
@@ -103,7 +127,13 @@ func webmToApng(input []byte) ([]byte, error) {
 	}
 	defer outFile.Close()
 	defer os.Remove(outPath)
-	cmd := exec.Command("ffmpeg", "-codec:v", "libvpx-vp9", "-y", "-i", inPath, "-plays", "0", "-f", "apng", outPath)
+	cmd := exec.Command("ffmpeg",
+		"-codec:v", "libvpx-vp9",
+		"-y",
+		"-i", inPath,
+		"-vf", "scale=iw/3:ih/3,split=2[a][b];[b]palettegen[p];[a][p]paletteuse",
+		"-loop", "0",
+		outPath)
 	err = cmd.Start()
 	if err != nil {
 		fmt.Println("Error starting command:", err)
