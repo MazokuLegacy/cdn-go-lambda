@@ -266,7 +266,7 @@ func getWebpFromWebm(input []byte, width int) ([]byte, error) {
 
 func convertWebmToMP4(input []byte, width int) ([]byte, error) {
 	inPath := "/tmp/input.webm"
-	outPath := "/tmp/output.webp"
+	outPath := "/tmp/output.mp4"
 	inFile, err := os.Create(inPath)
 	if err != nil {
 		return nil, err
@@ -282,7 +282,8 @@ func convertWebmToMP4(input []byte, width int) ([]byte, error) {
 	defer os.Remove(outPath)
 	scale := getScale(width)
 	cmd := exec.Command("ffmpeg",
-		"-y", "-i", inPath,
+		"-y",
+		"-i", inPath,
 		"-vf", scale,
 		"-c:v", "libx265",
 		"-crf", "23",
