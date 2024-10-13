@@ -67,16 +67,19 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 func convertWebMToMP4(input []byte) ([]byte, error) {
 	inputReader := bytes.NewReader(input)
 	buf := &bytes.Buffer{}
-	var outputBuffer bytes.Buffer
-
-	err := fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputFormat("mp4").PipeOutput(&outputBuffer).OutputLogs(buf).Run()
-
+	tempFile, err := os.CreateTemp("", "output.mp4")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temp file: %w", err)
+	}
+	defer os.Remove(tempFile.Name())
+	err = fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputFormat("mp4").OutputPath("output.mp4").Overwrite(true).OutputLogs(buf).Run()
 	out, _ := io.ReadAll(buf)
 	fmt.Println(string(out))
 	if err != nil {
 		return nil, err
 	}
-	return outputBuffer.Bytes(), nil
+	output, err := io.ReadAll(tempFile)
+	return output, nil
 }
 
 func fetchS3Object(key string, s3Client *s3.Client) ([]byte, string, error) {
