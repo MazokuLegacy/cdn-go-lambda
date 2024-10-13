@@ -98,26 +98,29 @@ func getWebpFromWebm(input []byte) ([]byte, error) {
 		return nil, err
 	}
 	log.Println("why hello")
-
-	if err := cmd.Start(); err != nil {
+	err = cmd.Start()
+	if err != nil {
 		fmt.Println("Error starting command:", err)
 		return nil, err
 	}
 
 	log.Println("started")
-	if _, err := io.Copy(stdin, inputReader); err != nil {
+	_, err = io.Copy(stdin, inputReader)
+	if err != nil {
 		fmt.Println("Error writing to stdin:", err)
 		return nil, err
 	}
 
 	log.Println("copied")
-	if err := stdin.Close(); err != nil {
+	err = stdin.Close()
+	if err != nil {
 		fmt.Println("Error closing stdin:", err)
 		return nil, err
 	}
 
 	log.Println("closed")
-	if err := cmd.Wait(); err != nil {
+	err = cmd.Wait()
+	if err != nil {
 		fmt.Println("Error waiting for command:", err)
 		return nil, err
 	}
