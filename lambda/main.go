@@ -154,7 +154,7 @@ func storeAndReturnTransformedMedia(object []byte, s3Client *s3.Client, key stri
 
 func getOperationsMap(operationString string) (operations map[string]string) {
 	result := make(map[string]string)
-	pairs := strings.Split(input, ",")
+	pairs := strings.Split(operationString, ",")
 	for _, pair := range pairs {
 		kv := strings.SplitN(pair, "=", 2)
 		if len(kv) == 2 {
