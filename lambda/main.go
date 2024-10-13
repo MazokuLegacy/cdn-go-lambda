@@ -53,7 +53,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		if handleFatalError(err, "failed to convert to mp4") {
 			return internalServerError("failed to convert to mp4")
 		}
-		storeAndReturnTransformedMedia(mp4, s3Client, key, operations, sourceContentType)
+		return storeAndReturnTransformedMedia(mp4, s3Client, key, operations, sourceContentType)
 	}
 	return events.LambdaFunctionURLResponse{
 		StatusCode: 200,
