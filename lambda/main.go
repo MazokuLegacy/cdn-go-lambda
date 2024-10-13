@@ -53,6 +53,10 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	if pathArr[0] != "cards" {
 		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operationString, sourceContentType)
 	}
+	width := operationsMap["width"]
+	if width == "" {
+		width == "750"
+	}
 	requestedWidth, err := strconv.Atoi(operationsMap["width"])
 	if handleFatalError(err, "width is not a valid number") {
 		return internalServerError("width is not a valid number")
@@ -70,7 +74,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 			if handleFatalError(err, "failed to convert to png") {
 				return internalServerError("failed to convert to png")
 			}
-			contentType = "image/png"
+			contentType = "image/" + requestedFormat
 		case "webp":
 			output, err = getWebpFromWebm(fetchedObject, requestedWidth)
 			if handleFatalError(err, "failed to convert to webp") {
@@ -83,6 +87,12 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 				return internalServerError("failed to convert to mp4")
 			}
 			contentType = "video/" + requestedFormat
+		default:
+			output, err = scaleWebm(fetchedObject, requestedWidth)
+			if handleFatalError(err, "failed to convert to mp4") {
+				return internalServerError("failed to convert to mp4")
+			}
+			contentType = "video/webm"
 		}
 		return storeAndReturnTransformedMedia(output, s3Client, key, operationString, contentType)
 	}
@@ -91,6 +101,44 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		return internalServerError("failed to resize and convert to webp")
 	}
 	return storeAndReturnTransformedMedia(output, s3Client, key, operationString, "image/webp")
+}
+
+func scaleWebm(input []byte, width int) ([]byte, error) {
+	inPath := "/tmp/input.webm"
+	outPath := "/tmp/output.webm"
+	inFile, err := os.Create(inPath)
+	if err != nil {
+		return nil, err
+	}
+	defer inFile.Close()
+	defer os.Remove(inPath)
+	inFile.Write(input)
+	outFile, err := os.Create(outPath)
+	if err != nil {
+		return nil, err
+	}
+	defer outFile.Close()
+	defer os.Remove(outPath)
+	scale := getScale(width)
+	cmd := exec.Command("ffmpeg",
+		"-codec:v", "libvpx-vp9",
+		"-y",
+		"-i", inPath,
+		"-vf", scale,
+		outPath)
+	err = cmd.Start()
+	if err != nil {
+		fmt.Println("Error starting command:", err)
+		return nil, err
+	}
+	err = cmd.Wait()
+	if err != nil {
+		fmt.Println("Error waiting for command:", err)
+		return nil, err
+	}
+	log.Println("completed")
+	output, err := io.ReadAll(outFile)
+	return output, nil
 }
 
 func pngToWebp(input []byte, width int) ([]byte, error) {
@@ -110,7 +158,6 @@ func pngToWebp(input []byte, width int) ([]byte, error) {
 	defer outFile.Close()
 	defer os.Remove(outPath)
 	scale := getScale(width)
-	log.Println(scale)
 	cmd := exec.Command("ffmpeg",
 		"-y",
 		"-i", inPath,
