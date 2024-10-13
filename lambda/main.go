@@ -82,7 +82,6 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 }
 
 func getWebpFromWebm(input []byte) ([]byte, error) {
-	inputReader := bytes.NewReader(input)
 	inPath := "/tmp/input.webm"
 	outPath := "/tmp/output.webp"
 	inFile, err := os.Create(inPath)
@@ -99,31 +98,11 @@ func getWebpFromWebm(input []byte) ([]byte, error) {
 	defer outFile.Close()
 	defer os.Remove(outPath)
 	cmd := exec.Command("ffmpeg", "-loglevel", "error", "-y", "-i", inPath, "-vframes", "1", "-ss", "0", outPath)
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		fmt.Println("Error creating stdin pipe:", err)
-		return nil, err
-	}
 	err = cmd.Start()
 	if err != nil {
 		fmt.Println("Error starting command:", err)
 		return nil, err
 	}
-
-	_, err = io.Copy(stdin, inputReader)
-	if err != nil {
-		fmt.Println("Error writing to stdin:", err)
-		return nil, err
-	}
-
-	log.Println("copied")
-	err = stdin.Close()
-	if err != nil {
-		fmt.Println("Error closing stdin:", err)
-		return nil, err
-	}
-
-	log.Println("closed")
 	err = cmd.Wait()
 	if err != nil {
 		fmt.Println("Error waiting for command:", err)
