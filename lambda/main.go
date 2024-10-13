@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -49,14 +50,24 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operations, sourceContentType)
 	}
 	if sourceContentType == "video/webm" {
+		output := bytes.Clone(fetchedObject)
+		var err error
+		contentType := sourceContentType
+		if requestedContentType == "image/webp" {
+			output, err = getWebpFromWebm(fetchedObject)
+			if handleFatalError(err, "failed to convert to webp") {
+				return internalServerError("failed to convert to webp")
+			}
+			contentType = requestedContentType
+		}
 		if requestedContentType == "video/mp4" {
-			mp4, err := convertWebMToMP4(fetchedObject)
+			output, err = convertWebMToMP4(fetchedObject)
 			if handleFatalError(err, "failed to convert to mp4") {
 				return internalServerError("failed to convert to mp4")
 			}
-			return storeAndReturnTransformedMedia(mp4, s3Client, key, operations, requestedContentType)
+			contentType = requestedContentType
 		}
-		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operations, sourceContentType)
+		return storeAndReturnTransformedMedia(output, s3Client, key, operations, contentType)
 	}
 	return events.LambdaFunctionURLResponse{
 		StatusCode: 200,
@@ -67,12 +78,29 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	}, nil
 }
 
+func getWebpFromWebm(input []byte) ([]byte, error) {
+	inputReader := bytes.NewReader(input)
+	filepath := "/tmp/ouptut.webp"
+	file, err := os.Create(filepath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	defer os.Remove(filepath)
+	err = fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputOptions("--ss 00:00:00").OutputFormat("webp").OutputPath(filepath).Run()
+	if err != nil {
+		return nil, err
+	}
+	output, err := io.ReadAll(file)
+	return output, nil
+}
+
 func convertWebMToMP4(input []byte) ([]byte, error) {
 	inputReader := bytes.NewReader(input)
 	filePath := "/tmp/output.mp4"
 	file, err := os.Create(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create temp file: %w", err)
+		return nil, err
 	}
 	defer file.Close()
 	defer os.Remove(filePath)
