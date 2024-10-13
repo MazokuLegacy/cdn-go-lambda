@@ -44,16 +44,19 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	if handleFatalError(err, "failed to fetch original image") {
 		return internalServerError("failed to fetch original image")
 	}
-	if pathArr[0] != "cards" {
+	requestedContentType := event.Headers["Content-Type"]
+	if pathArr[0] != "cards" || requestedContentType == sourceContentType {
 		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operations, sourceContentType)
 	}
-
 	if sourceContentType == "video/webm" {
-		mp4, err := convertWebMToMP4(fetchedObject)
-		if handleFatalError(err, "failed to convert to mp4") {
-			return internalServerError("failed to convert to mp4")
+		if requestedContentType == "video/mp4" {
+			mp4, err := convertWebMToMP4(fetchedObject)
+			if handleFatalError(err, "failed to convert to mp4") {
+				return internalServerError("failed to convert to mp4")
+			}
+			return storeAndReturnTransformedMedia(mp4, s3Client, key, operations, requestedContentType)
 		}
-		return storeAndReturnTransformedMedia(mp4, s3Client, key, operations, sourceContentType)
+		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operations, sourceContentType)
 	}
 	return events.LambdaFunctionURLResponse{
 		StatusCode: 200,
@@ -66,7 +69,6 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 
 func convertWebMToMP4(input []byte) ([]byte, error) {
 	inputReader := bytes.NewReader(input)
-	buf := &bytes.Buffer{}
 	filePath := "/tmp/output.mp4"
 	file, err := os.Create(filePath)
 	if err != nil {
@@ -74,9 +76,7 @@ func convertWebMToMP4(input []byte) ([]byte, error) {
 	}
 	defer file.Close()
 	defer os.Remove(filePath)
-	err = fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputFormat("mp4").OutputPath(filePath).Overwrite(true).OutputLogs(buf).Run()
-	out, _ := io.ReadAll(buf)
-	fmt.Println(string(out))
+	err = fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputFormat("mp4").OutputPath(filePath).Overwrite(true).Run()
 	if err != nil {
 		return nil, err
 	}
