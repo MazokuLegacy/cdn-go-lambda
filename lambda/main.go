@@ -97,7 +97,7 @@ func getWebpFromWebm(input []byte) ([]byte, error) {
 	}
 	defer outFile.Close()
 	defer os.Remove(outPath)
-	cmd := exec.Command("ffmpeg", "-c:v", "libvpx-vp9", "-loglevel", "error", "-y", "-i", inPath, "-vframes", "1", "-ss", "0", "-vf", "-c:v", "libwebp", outPath)
+	cmd := exec.Command("ffmpeg", "-codec:v", "libvpx-vp9", "-loglevel", "error", "-y", "-i", inPath, "-vframes", "1", "-ss", "0", outPath)
 	err = cmd.Start()
 	if err != nil {
 		fmt.Println("Error starting command:", err)
