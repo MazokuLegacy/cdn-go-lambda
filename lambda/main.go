@@ -110,6 +110,7 @@ func pngToWebp(input []byte, width int) ([]byte, error) {
 	defer outFile.Close()
 	defer os.Remove(outPath)
 	scale := getScale(width)
+	log.Println(scale)
 	cmd := exec.Command("ffmpeg",
 		"-y",
 		"-i", inPath,
