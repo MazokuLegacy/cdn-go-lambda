@@ -71,11 +71,11 @@ func convertWebMToMP4(input []byte) ([]byte, error) {
 
 	err := fluentffmpeg.NewCommand("").PipeInput(inputReader).OutputFormat("mp4").PipeOutput(&outputBuffer).OutputLogs(buf).Run()
 
+	out, _ := io.ReadAll(buf)
+	fmt.Println(string(out))
 	if err != nil {
 		return nil, err
 	}
-	out, _ := io.ReadAll(buf)
-	fmt.Println(string(out))
 	return outputBuffer.Bytes(), nil
 }
 
