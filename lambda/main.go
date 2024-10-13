@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -87,13 +88,16 @@ func getWebpFromWebm(input []byte) ([]byte, error) {
 		return nil, err
 	}
 	defer file.Close()
-	buf := &bytes.Buffer{}
 	defer os.Remove(filepath)
-	err = fluentffmpeg.NewCommand("--ss 00:00:00").PipeInput(inputReader).VFrames(1).OutputFormat("webp").OutputPath(filepath).Overwrite(true).OutputLogs(buf).Run()
-	out, _ := io.ReadAll(buf)
+	cmd := exec.Command("ffmpeg", "-y", "-ss", "0", "-i", "-", "-vframes", "1", "output.webp")
+	cmd.Stdin = inputReader
+	err = cmd.Start()
 	if err != nil {
-		fmt.Println(string(out))
-		return nil, err
+		fmt.Println("Error starting command:", err)
+	}
+	err = cmd.Wait()
+	if err != nil {
+		fmt.Println("Error running command:", err)
 	}
 	output, err := io.ReadAll(file)
 	return output, nil
