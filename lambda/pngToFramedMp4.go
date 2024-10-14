@@ -38,7 +38,7 @@ func pngToFramedMp4(input []byte, frame []byte, width int) ([]byte, error) {
 		"-i", inPath,
 		"-c:v", "libvpx-vp9",
 		"-i", framePath,
-		"-filter_complex", "[0:v][1:v] overlay=0:0,"+scale,
+		"-filter_complex", "[1:v]scale=750:1050[video];[0:v]scale=1500:2100[image];[image][video]overlay=(W-w)/2:(H-h)/2"+scale,
 		"-c:v", "libx264",
 		"-pix_fmt", "yuv420p",
 		"-crf", "23",
