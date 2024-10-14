@@ -49,7 +49,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	var frameObject []byte
 	if hasFrame {
 		frameType := ".png"
-		if _, ok := map[string]string{"gif": "", "webm": "", "mp4": ""}[requestedFormat]; ok {
+		if _, ok := map[string]string{"gif": "", "webm": "", "mp4": ""}[requestedFormat]; ok || sourceContentType == "video/webm" {
 			frameType = ".webm"
 		}
 		framekey := "frames/" + requestedFrame + "/frame" + frameType
