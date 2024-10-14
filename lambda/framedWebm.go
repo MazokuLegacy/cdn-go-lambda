@@ -41,8 +41,7 @@ func framedWebm(input []byte, frame []byte, width int) ([]byte, error) {
 		"-c:v", "libvpx-vp9",
 		"-i", framePath,
 		"-c:a", "copy",
-		"-vf", scale,
-		"-filter_complex", "[0:v][1:v] overlay=0:0:enable='between(t,0,20)'",
+		"-filter_complex", "[0:v][1:v] overlay=0:0:enable='between(t,0,20)',"+scale,
 		"-y",
 		outPath)
 	stdout, err := cmd.StdoutPipe()
