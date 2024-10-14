@@ -32,6 +32,7 @@ func framedWebm(input []byte, frame []byte) ([]byte, error) {
 	}
 	defer outFile.Close()
 	defer os.Remove(outPath)
+	log.Println("process begins")
 	cmd := exec.Command("ffmpeg",
 		"-c:v", "libvpx-vp9",
 		"-i", inPath,
