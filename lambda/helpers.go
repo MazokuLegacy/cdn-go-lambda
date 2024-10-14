@@ -3,9 +3,9 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"io"
 	"log"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -38,9 +38,8 @@ func fetchS3Object(key string, s3Client *s3.Client) ([]byte, string, error) {
 }
 
 func storeAndReturnTransformedMedia(object []byte, s3Client *s3.Client, key string, operations string, contentType string) (events.LambdaFunctionURLResponse, error) {
-	transformedBucket := os.Getenv("transformedImageBucketName")
 	_, err := s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
-		Bucket:      aws.String(transformedBucket),
+		Bucket:      aws.String(os.Getenv("transformedImageBucketName")),
 		Key:         aws.String(key + "/" + operations),
 		Body:        bytes.NewReader(object),
 		ContentType: aws.String(contentType),
@@ -48,12 +47,14 @@ func storeAndReturnTransformedMedia(object []byte, s3Client *s3.Client, key stri
 	if err != nil {
 		return internalServerError("saving image to bucket failed")
 	}
-	s3Url := "https://" + transformedBucket + ".s3.amazonaws.com/" + key + "/" + url.QueryEscape(operations)
+	encodedObject := base64.StdEncoding.EncodeToString(object)
 	return events.LambdaFunctionURLResponse{
-		StatusCode: 302,
+		StatusCode: 200,
+		Body:       encodedObject,
 		Headers: map[string]string{
-			"Location": s3Url,
+			"Content-Type": contentType,
 		},
+		IsBase64Encoded: true,
 	}, nil
 }
 
