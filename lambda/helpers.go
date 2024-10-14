@@ -47,11 +47,11 @@ func storeAndReturnTransformedMedia(object []byte, s3Client *s3.Client, key stri
 	if err != nil {
 		return internalServerError("saving image to bucket failed")
 	}
-	s3Url := "https://d1j2iknz72s0sm.cloudfront.net/" + key + "?" + operations
+	redirectUrl := "https://d1j2iknz72s0sm.cloudfront.net/" + key + "?" + strings.ReplaceAll(operations, ",", "&")
 	return events.LambdaFunctionURLResponse{
 		StatusCode: 302,
 		Headers: map[string]string{
-			"Location": s3Url,
+			"Location": redirectUrl,
 		},
 	}, nil
 }
