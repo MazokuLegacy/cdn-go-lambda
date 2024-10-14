@@ -9,7 +9,7 @@ import (
 	"os/exec"
 )
 
-func framedWebm(input []byte, frame []byte) ([]byte, error) {
+func framedWebm(input []byte, frame []byte, width int) ([]byte, error) {
 	inPath := "/tmp/input.webm"
 	framePath := "/tmp/frame.webm"
 	outPath := "/tmp/output.webm"
@@ -34,12 +34,14 @@ func framedWebm(input []byte, frame []byte) ([]byte, error) {
 	defer outFile.Close()
 	defer os.Remove(outPath)
 	log.Println("process begins")
+	scale := getScale(width)
 	cmd := exec.Command("ffmpeg",
 		"-c:v", "libvpx-vp9",
 		"-i", inPath,
 		"-c:v", "libvpx-vp9",
 		"-i", framePath,
 		"-c:a", "copy",
+		"-vf", scale,
 		"-filter_complex", "[0:v][1:v] overlay=0:0:enable='between(t,0,20)'",
 		"-y",
 		outPath)
