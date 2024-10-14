@@ -34,10 +34,9 @@ func framedWebp(input []byte, frame []byte, width int) ([]byte, error) {
 	defer os.Remove(outPath)
 	scale := getScale(width)
 	cmd := exec.Command("ffmpeg",
-		"-c:v", "libwebp",
 		"-i", inPath,
 		"-i", framePath,
-		"-filter_complex", "[0:v][1:v] overlay=0:0,"+scale,
+		"-filter_complex", "overlay=0:0,"+scale,
 		"-y",
 		outPath)
 	err = cmd.Start()
