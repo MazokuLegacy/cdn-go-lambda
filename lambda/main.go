@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -40,10 +39,23 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		return internalServerError("failed to fetch original image")
 	}
 	operationString := pathArr[lastIndex]
-	operationsMap := getOperationsMap(operationString)
-	requestedFormat := operationsMap["format"]
 	if pathArr[0] != "cards" {
 		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operationString, sourceContentType)
+	}
+	operationsMap := getOperationsMap(operationString)
+	requestedFormat := operationsMap["format"]
+	requestedFrame, hasFrame := operationsMap["frame"]
+	var frameObject []byte
+	if hasFrame {
+		frameType := ".png"
+		if _, ok := map[string]string{"gif": "", "webm": "", "mp4": ""}[requestedFormat]; ok {
+			frameType = ".webm"
+		}
+		frameObject, _, err = fetchS3Object("frames/"+requestedFrame+"/frame"+frameType, s3Client)
+		if err != nil {
+			handleFatalError(err, "failed to fetch frame")
+			return internalServerError("failed to fetch frame")
+		}
 	}
 	width, ok := operationsMap["width"]
 	if !ok {
@@ -56,13 +68,16 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	if requestedWidth > 750 {
 		requestedWidth = 750
 	}
+	var output []byte
+	contentType := sourceContentType
 	if sourceContentType == "video/webm" {
-		output := bytes.Clone(fetchedObject)
-		var err error
-		contentType := sourceContentType
 		switch requestedFormat {
 		case "gif":
-			output, err = webmToGif(fetchedObject, requestedWidth)
+			if hasFrame {
+				output, err = framedWebmToGif(fetchedObject, frameObject, requestedWidth)
+			} else {
+				output, err = webmToGif(fetchedObject, requestedWidth)
+			}
 			if handleFatalError(err, "failed to convert to png") {
 				return internalServerError("failed to convert to png")
 			}
@@ -88,13 +103,14 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 				contentType = "video/webm"
 			}
 		}
-		return storeAndReturnTransformedMedia(output, s3Client, key, operationString, contentType)
+	} else {
+		output, err = pngToWebp(fetchedObject, int(requestedWidth))
+		if handleFatalError(err, "failed to resize and convert to webp") {
+			return internalServerError("failed to resize and convert to webp")
+		}
+		contentType = "image/webp"
 	}
-	output, err := pngToWebp(fetchedObject, int(requestedWidth))
-	if handleFatalError(err, "failed to resize and convert to webp") {
-		return internalServerError("failed to resize and convert to webp")
-	}
-	return storeAndReturnTransformedMedia(output, s3Client, key, operationString, "image/webp")
+	return storeAndReturnTransformedMedia(output, s3Client, key, operationString, contentType)
 }
 
 func main() {
