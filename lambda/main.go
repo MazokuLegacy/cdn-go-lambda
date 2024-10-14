@@ -111,13 +111,20 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 			}
 			contentType = "video/" + requestedFormat
 		default:
+			var modifiedOutput []byte
+			if hasFrame {
+				modifiedOutput, err = framedWebm(fetchedObject, frameObject)
+			} else {
+				modifiedOutput = fetchedObject
+			}
 			if requestedWidth != 750 {
-				output, err = scaleWebm(fetchedObject, requestedWidth)
+				output, err = scaleWebm(modifiedOutput, requestedWidth)
 				if handleFatalError(err, "failed to convert to mp4") {
 					return internalServerError("failed to convert to mp4")
 				}
 				contentType = "video/webm"
 			}
+
 		}
 	} else {
 		output, err = pngToWebp(fetchedObject, int(requestedWidth))
