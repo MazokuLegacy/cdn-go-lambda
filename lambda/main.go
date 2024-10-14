@@ -73,11 +73,14 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	if sourceContentType == "video/webm" {
 		switch requestedFormat {
 		case "gif":
+			modifiedOutput := fetchedObject
 			if hasFrame {
-				output, err = framedWebmToGif(fetchedObject, frameObject, requestedWidth)
-			} else {
-				output, err = webmToGif(fetchedObject, requestedWidth)
+				modifiedOutput, err = framedWebm(fetchedObject, frameObject)
+				if handleFatalError(err, "failed to add frame") {
+					return internalServerError("failed to add frame")
+				}
 			}
+			output, err = webmToGif(modifiedOutput, requestedWidth)
 			if handleFatalError(err, "failed to convert to gif") {
 				return internalServerError("failed to convert to gif")
 			}
@@ -88,6 +91,13 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 				return internalServerError("failed to convert to webp")
 			}
 			contentType = "image/" + requestedFormat
+			if hasFrame {
+				modifiedOutput, err := framedWebp(output, frameObject)
+				if handleFatalError(err, "failed to add frame") {
+					return internalServerError("failed to add frame")
+				}
+				output = modifiedOutput
+			}
 		case "mp4":
 			output, err = convertWebmToMP4(fetchedObject, requestedWidth)
 			if handleFatalError(err, "failed to convert to mp4") {

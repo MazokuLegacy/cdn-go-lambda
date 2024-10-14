@@ -8,10 +8,10 @@ import (
 	"os/exec"
 )
 
-func framedWebmToGif(input []byte, frame []byte, width int) ([]byte, error) {
+func framedWebm(input []byte, frame []byte) ([]byte, error) {
 	inPath := "/tmp/input.webm"
 	framePath := "/tmp/frame.webm"
-	outPath := "/tmp/output.gif"
+	outPath := "/tmp/output.webm"
 	inFile, err := os.Create(inPath)
 	if err != nil {
 		return nil, err
@@ -32,17 +32,14 @@ func framedWebmToGif(input []byte, frame []byte, width int) ([]byte, error) {
 	}
 	defer outFile.Close()
 	defer os.Remove(outPath)
-	if width > 300 {
-		width = 300
-	}
-	scale := getScale(width)
 	cmd := exec.Command("ffmpeg",
-		"-codec:v", "libvpx-vp9",
-		"-y",
+		"-c:v", "libvpx-vp9",
 		"-i", inPath,
+		"-c:v", "libvpx-vp9",
 		"-i", framePath,
-		"-filter_complex", "overlay=0:0,"+scale+", split=2[a][b];[b]palettegen[p];[a][p]paletteuse",
-		"-loop", "0",
+		"-c:a", "copy",
+		"-filter_complex", "[0:v][1:v] overlay=0:0:enable='between(t,0,20)'",
+		"-y",
 		outPath)
 	err = cmd.Start()
 	if err != nil {
