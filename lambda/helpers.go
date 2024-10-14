@@ -3,9 +3,9 @@ package main
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"io"
 	"log"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -38,8 +38,9 @@ func fetchS3Object(key string, s3Client *s3.Client) ([]byte, string, error) {
 }
 
 func storeAndReturnTransformedMedia(object []byte, s3Client *s3.Client, key string, operations string, contentType string) (events.LambdaFunctionURLResponse, error) {
+	transformedBucket := os.Getenv("transformedImageBucketName")
 	_, err := s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
-		Bucket:      aws.String(os.Getenv("transformedImageBucketName")),
+		Bucket:      aws.String(transformedBucket),
 		Key:         aws.String(key + "/" + operations),
 		Body:        bytes.NewReader(object),
 		ContentType: aws.String(contentType),
@@ -47,25 +48,12 @@ func storeAndReturnTransformedMedia(object []byte, s3Client *s3.Client, key stri
 	if err != nil {
 		return internalServerError("saving image to bucket failed")
 	}
-	if len(object) > 6291456 {
-		return events.LambdaFunctionURLResponse{
-			StatusCode: 200,
-			Body:       "Cloudfront is refetching",
-			Headers: map[string]string{
-				"Cache-Control": "no-cache, no-store, must-revalidate",
-				"Pragma":        "no-cache", // HTTP 1.0
-				"Expires":       "0",
-			},
-		}, nil
-	}
-	encodedObject := base64.StdEncoding.EncodeToString(object)
+	s3Url := "https://d1j2iknz72s0sm.cloudfront.net/" + key + "?" + operations
 	return events.LambdaFunctionURLResponse{
-		StatusCode: 200,
-		Body:       encodedObject,
+		StatusCode: 302,
 		Headers: map[string]string{
-			"Content-Type": contentType,
+			"Location": s3Url,
 		},
-		IsBase64Encoded: true,
 	}, nil
 }
 
