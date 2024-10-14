@@ -3,11 +3,9 @@ package main
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"log"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 
