@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -17,6 +18,40 @@ import (
 
 func getScale(width int) string {
 	return "scale=" + strconv.Itoa(width) + ":-1"
+}
+
+func fetchS3ObjectsParallel(keys []string, s3Client *s3.Client) (map[string][]byte, error) {
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	results := make(map[string][]byte)
+	var anyerr error
+	wg.Add(len(keys))
+	for _, key := range keys {
+		go func(k string) {
+			defer wg.Done()
+			data, sourceContentType, err := fetchS3Object(key, s3Client)
+			if err != nil {
+				anyerr = err
+				return
+			}
+			var result []byte
+			if sourceContentType == "video/webm" {
+				result, err = webmToPng(data, 1500)
+				if err != nil {
+					anyerr = err
+					return
+				}
+			} else {
+				result = data
+			}
+			mu.Lock()
+			results[k] = result
+			mu.Unlock()
+		}(key)
+	}
+
+	wg.Wait()
+	return results, anyerr
 }
 
 func fetchS3Object(key string, s3Client *s3.Client) ([]byte, string, error) {

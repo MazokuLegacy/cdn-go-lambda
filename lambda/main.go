@@ -34,24 +34,45 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	if handleFatalError(err, "failed to load config") {
 		return internalServerError("failed to load config")
 	}
+	operationString := pathArr[lastIndex]
+	operationsMap := getOperationsMap(operationString)
 	s3Client := s3.NewFromConfig(cfg)
+	width, ok := operationsMap["width"]
+	if !ok {
+		width = "750"
+	}
+	requestedWidth, err := strconv.Atoi(width)
+	if err != nil {
+		requestedWidth = 750
+		delete(operationsMap, "width")
+	}
+	if requestedWidth > 750 {
+		requestedWidth = 750
+	}
 	if pathArr[0] == "packs" {
 		cardIds := pathArr[1:lastIndex]
 		cardKeys := cardIds[0:0]
 		for _, id := range cardIds {
 			cardKeys = append(cardKeys, "cards/"+id+"/card")
 		}
-		fmt.Println(cardKeys)
+		cardObjects, err := fetchS3ObjectsParallel(cardKeys, s3Client)
+		if handleFatalError(err, "failed to fetch card images") {
+			return internalServerError("failed to fetch card images")
+		}
+		output, err := packWebp(cardObjects, requestedWidth)
+		if handleFatalError(err, "failed to make webp") {
+			return internalServerError("failed to make webp")
+		}
+		contentType := "image/webp"
+		return storeAndReturnTransformedMedia(output, s3Client, key, operationString, contentType)
 	}
 	fetchedObject, sourceContentType, err := fetchS3Object(key, s3Client)
 	if handleFatalError(err, "failed to fetch original image") {
 		return internalServerError("failed to fetch original image")
 	}
-	operationString := pathArr[lastIndex]
 	if pathArr[0] != "cards" {
 		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operationString, sourceContentType)
 	}
-	operationsMap := getOperationsMap(operationString)
 	requestedFormat := operationsMap["format"]
 	requestedFrame, hasFrame := operationsMap["frame"]
 	var frameObject []byte
@@ -67,18 +88,6 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 			handleFatalError(err, "failed to fetch frame")
 			return internalServerError("failed to fetch frame")
 		}
-	}
-	width, ok := operationsMap["width"]
-	if !ok {
-		width = "750"
-	}
-	requestedWidth, err := strconv.Atoi(width)
-	if err != nil {
-		requestedWidth = 750
-		delete(operationsMap, "width")
-	}
-	if requestedWidth > 750 {
-		requestedWidth = 750
 	}
 	var output []byte
 	contentType := sourceContentType
