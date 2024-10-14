@@ -41,7 +41,7 @@ func framedWebmToGif(input []byte, frame []byte, width int) ([]byte, error) {
 		"-y",
 		"-i", inPath,
 		"-i", framePath,
-		"-filter_complex", "overlay=0:0,"+scale+":flags=lanczos[p];[b]palettegen[p];[a][p]paletteuse",
+		"-filter_complex", "overlay=0:0,"+scale+", split=2[a][b];[b]palettegen[p];[a][p]paletteuse",
 		"-loop", "0",
 		outPath)
 	err = cmd.Start()
