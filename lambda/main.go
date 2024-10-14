@@ -78,7 +78,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		case "gif":
 			var modifiedOutput []byte
 			if hasFrame {
-				modifiedOutput, err = framedWebm(fetchedObject, frameObject)
+				modifiedOutput, err = framedWebm(fetchedObject, frameObject, requestedWidth)
 				if handleFatalError(err, "failed to add frame") {
 					return internalServerError("failed to add frame")
 				}
