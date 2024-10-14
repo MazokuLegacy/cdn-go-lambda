@@ -47,6 +47,17 @@ func storeAndReturnTransformedMedia(object []byte, s3Client *s3.Client, key stri
 	if err != nil {
 		return internalServerError("saving image to bucket failed")
 	}
+	if len(object) > 6291456 {
+		return events.LambdaFunctionURLResponse{
+			StatusCode: 200,
+			Body:       "Cloudfront is refetching",
+			Headers: map[string]string{
+				"Cache-Control": "no-cache, no-store, must-revalidate",
+				"Pragma":        "no-cache", // HTTP 1.0
+				"Expires":       "0",
+			},
+		}, nil
+	}
 	encodedObject := base64.StdEncoding.EncodeToString(object)
 	return events.LambdaFunctionURLResponse{
 		StatusCode: 200,
