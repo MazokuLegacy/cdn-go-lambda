@@ -67,6 +67,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	requestedWidth, err := strconv.Atoi(width)
 	if err != nil {
 		requestedWidth = 750
+		delete(operationsMap, "width")
 	}
 	if requestedWidth > 750 {
 		requestedWidth = 750
