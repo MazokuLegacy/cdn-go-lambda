@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"io"
 	"log"
 	"os"
@@ -47,15 +48,26 @@ func storeAndReturnTransformedMedia(object []byte, s3Client *s3.Client, key stri
 	if err != nil {
 		return internalServerError("saving image to bucket failed")
 	}
-	redirectUrl := "https://cdn.mazoku.cc/" + key + "?" + strings.ReplaceAll(operations, ",", "&")
+	if len(object) > 6291456 {
+		redirectUrl := "https://cdn.mazoku.cc/" + key + "?" + strings.ReplaceAll(operations, ",", "&")
+		return events.LambdaFunctionURLResponse{
+			StatusCode: 302,
+			Headers: map[string]string{
+				"Location":      redirectUrl,
+				"Cache-Control": "no-cache, no-store, must-revalidate",
+				"Pragma":        "no-cache",
+				"Expires":       "0",
+			},
+		}, nil
+	}
+	encodedObject := base64.StdEncoding.EncodeToString(object)
 	return events.LambdaFunctionURLResponse{
-		StatusCode: 302,
+		StatusCode: 200,
+		Body:       encodedObject,
 		Headers: map[string]string{
-			"Location":      redirectUrl,
-			"Cache-Control": "no-cache, no-store, must-revalidate",
-			"Pragma":        "no-cache",
-			"Expires":       "0",
+			"Content-Type": contentType,
 		},
+		IsBase64Encoded: true,
 	}, nil
 }
 
