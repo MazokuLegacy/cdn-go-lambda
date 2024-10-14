@@ -37,6 +37,8 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	s3Client := s3.NewFromConfig(cfg)
 	if pathArr[0] == "packs" {
 		log.Println(pathArr)
+		cardIds := pathArr[1:lastIndex]
+		log.Println(cardIds)
 		return internalServerError("bye")
 	}
 	fetchedObject, sourceContentType, err := fetchS3Object(key, s3Client)
