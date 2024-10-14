@@ -11,7 +11,7 @@ import (
 
 func framedWebpFromWebm(input []byte, frame []byte, width int) ([]byte, error) {
 	inPath := "/tmp/input.webm"
-	framePath := "/tmp/frame.webp"
+	framePath := "/tmp/frame.webm"
 	outPath := "/tmp/output.webp"
 	inFile, err := os.Create(inPath)
 	if err != nil {
@@ -37,11 +37,11 @@ func framedWebpFromWebm(input []byte, frame []byte, width int) ([]byte, error) {
 	cmd := exec.Command("ffmpeg",
 		"-c:v", "libvpx-vp9",
 		"-i", inPath,
-		"-c:v", "libwebp",
 		"-i", framePath,
 		"-c:a", "copy",
 		"-filter_complex", "[0:v]select=eq(n\\,0)[bg];[bg][1:v]overlay=0:0,"+scale,
 		"-f:v", "1",
+		"-c:v", "libwebp",
 		"-y",
 		outPath)
 	stdout, err := cmd.StdoutPipe()
