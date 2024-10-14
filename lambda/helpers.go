@@ -47,7 +47,7 @@ func storeAndReturnTransformedMedia(object []byte, s3Client *s3.Client, key stri
 	if err != nil {
 		return internalServerError("saving image to bucket failed")
 	}
-	redirectUrl := "https://d1j2iknz72s0sm.cloudfront.net/" + key + "?" + strings.ReplaceAll(operations, ",", "&")
+	redirectUrl := "https://cdn.mazoku.cc/" + key + "?" + strings.ReplaceAll(operations, ",", "&")
 	return events.LambdaFunctionURLResponse{
 		StatusCode: 302,
 		Headers: map[string]string{
@@ -75,7 +75,7 @@ func getOperationsMap(operationString string) (operations map[string]string) {
 
 func internalServerError(message string) (events.LambdaFunctionURLResponse, error) {
 	return events.LambdaFunctionURLResponse{
-		StatusCode: 500,
+		StatusCode: 200,
 		Body:       message,
 		Headers: map[string]string{
 			"Content-Type": "text/plain",
