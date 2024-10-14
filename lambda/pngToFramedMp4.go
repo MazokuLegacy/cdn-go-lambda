@@ -35,9 +35,8 @@ func pngToFramedMp4(input []byte, frame []byte, width int) ([]byte, error) {
 	scale := getScale(width)
 	cmd := exec.Command("ffmpeg",
 		"-i", inPath,
-		"-c:v", "libvpx-vp9",
 		"-i", framePath,
-		"-filter_complex", "[0:v][1:v] overlay=0:0:enable='between(t,0,20)',"+scale,
+		"-filter_complex", "[0:v][1:v] overlay=0:0"+scale,
 		"-an",
 		"-c:v", "libx264",
 		"-crf", "23",
