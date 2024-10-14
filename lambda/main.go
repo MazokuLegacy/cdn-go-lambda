@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/anthonynsimon/bild/clone"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
