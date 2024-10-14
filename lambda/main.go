@@ -93,7 +93,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		case "webp":
 			contentType = "image/" + requestedFormat
 			if hasFrame {
-				output, err = framedWebpFromWebm(fetchedObject, frameObject, requestedWidth)
+				output, err = framedWebpFromWebm(output, frameObject, requestedWidth)
 			} else {
 				output, err = webmToWebp(fetchedObject, requestedWidth)
 			}
