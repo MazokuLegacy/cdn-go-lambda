@@ -31,7 +31,7 @@ func packWebp(inputs map[string][]byte, width int) ([]byte, error) {
 	defer outFile.Close()
 	defer os.Remove(outPath)
 	cmd := exec.Command("magick",
-		"convert", "-append",
+		"convert", "+append",
 		"/tmp/card*.png",
 		"-resize", strconv.Itoa(width)+"x",
 		outPath)
