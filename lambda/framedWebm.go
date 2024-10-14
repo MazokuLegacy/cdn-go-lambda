@@ -33,7 +33,6 @@ func framedWebm(input []byte, frame []byte, width int) ([]byte, error) {
 	}
 	defer outFile.Close()
 	defer os.Remove(outPath)
-	log.Println("process begins")
 	scale := getScale(width)
 	cmd := exec.Command("ffmpeg",
 		"-c:v", "libvpx-vp9",
@@ -44,34 +43,11 @@ func framedWebm(input []byte, frame []byte, width int) ([]byte, error) {
 		"-filter_complex", "[0:v][1:v] overlay=0:0:enable='between(t,0,20)',"+scale,
 		"-y",
 		outPath)
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		return nil, err
-	}
 	err = cmd.Start()
 	if err != nil {
 		fmt.Println("Error starting command:", err)
 		return nil, err
 	}
-	// Function to read and log output in real-time
-	go func(reader io.ReadCloser) {
-		scanner := bufio.NewScanner(reader)
-		for scanner.Scan() {
-			log.Println(scanner.Text()) // Logs each line of output as it happens
-		}
-	}(stdout)
-
-	// Function to read and log errors in real-time
-	go func(reader io.ReadCloser) {
-		scanner := bufio.NewScanner(reader)
-		for scanner.Scan() {
-			log.Println(scanner.Text()) // Logs each line of errors as they happen
-		}
-	}(stderr)
 	err = cmd.Wait()
 	if err != nil {
 		fmt.Println("Error waiting for command:", err)

@@ -8,7 +8,7 @@ import (
 	"os/exec"
 )
 
-func framedWebp(input []byte, frame []byte) ([]byte, error) {
+func framedWebp(input []byte, frame []byte, width int) ([]byte, error) {
 	inPath := "/tmp/input.webp"
 	framePath := "/tmp/frame.webp"
 	outPath := "/tmp/output.webp"
@@ -32,13 +32,14 @@ func framedWebp(input []byte, frame []byte) ([]byte, error) {
 	}
 	defer outFile.Close()
 	defer os.Remove(outPath)
+	scale := getScale(width)
 	cmd := exec.Command("ffmpeg",
 		"-c:v", "libwebp",
 		"-i", inPath,
 		"-c:v", "libwebp",
 		"-i", framePath,
 		"-c:a", "copy",
-		"-filter_complex", "[0:v][1:v] overlay=0:0:enable='between(t,0,20)'",
+		"-filter_complex", "[0:v][1:v] overlay=0:0:enable='between(t,0,20)',"+scale,
 		"-y",
 		outPath)
 	err = cmd.Start()
