@@ -51,7 +51,10 @@ func storeAndReturnTransformedMedia(object []byte, s3Client *s3.Client, key stri
 	return events.LambdaFunctionURLResponse{
 		StatusCode: 302,
 		Headers: map[string]string{
-			"Location": redirectUrl,
+			"Location":      redirectUrl,
+			"Cache-Control": "no-cache, no-store, must-revalidate",
+			"Pragma":        "no-cache",
+			"Expires":       "0",
 		},
 	}, nil
 }
