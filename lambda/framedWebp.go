@@ -35,7 +35,6 @@ func framedWebp(input []byte, frame []byte) ([]byte, error) {
 	cmd := exec.Command("ffmpeg",
 		"-c:v", "libwebp",
 		"-i", inPath,
-		"-c:v", "libwebp",
 		"-i", framePath,
 		"-c:a", "copy",
 		"-filter_complex", "[0:v][1:v] overlay=0:0:enable='between(t,0,20)'",
