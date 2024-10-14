@@ -25,7 +25,7 @@ func framedWebpFromWebm(input []byte, frame []byte, width int) ([]byte, error) {
 		return nil, err
 	}
 	defer frameFile.Close()
-	defer os.Remove(inPath)
+	defer os.Remove(framePath)
 	frameFile.Write(frame)
 	outFile, err := os.Create(outPath)
 	if err != nil {
