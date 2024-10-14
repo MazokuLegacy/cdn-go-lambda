@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/anthonynsimon/bild/clone"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -51,6 +53,8 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		if _, ok := map[string]string{"gif": "", "webm": "", "mp4": ""}[requestedFormat]; ok {
 			frameType = ".webm"
 		}
+		framekey := "frames/" + requestedFrame + "/frame" + frameType
+		log.Println(framekey)
 		frameObject, _, err = fetchS3Object("frames/"+requestedFrame+"/frame"+frameType, s3Client)
 		if err != nil {
 			handleFatalError(err, "failed to fetch frame")
@@ -73,12 +77,14 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	if sourceContentType == "video/webm" {
 		switch requestedFormat {
 		case "gif":
-			modifiedOutput := fetchedObject
+			var modifiedOutput []byte
 			if hasFrame {
 				modifiedOutput, err = framedWebm(fetchedObject, frameObject)
 				if handleFatalError(err, "failed to add frame") {
 					return internalServerError("failed to add frame")
 				}
+			} else {
+				modifiedOutput = fetchedObject
 			}
 			output, err = webmToGif(modifiedOutput, requestedWidth)
 			if handleFatalError(err, "failed to convert to gif") {
