@@ -35,7 +35,6 @@ func framedWebpFromWebm(input []byte, frame []byte, width int) ([]byte, error) {
 	defer os.Remove(outPath)
 	scale := getScale(width)
 	cmd := exec.Command("ffmpeg",
-		"-c:v", "libvpx-vp9",
 		"-i", inPath,
 		"-i", framePath,
 		"-filter_complex", "[0:v]trim=start=0:end=0.04,setpts=PTS-STARTPTS[firstframe];[firstframe][1:v]overlay=0:0,"+scale,

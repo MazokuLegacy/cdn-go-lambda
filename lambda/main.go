@@ -92,10 +92,15 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 			contentType = "image/" + requestedFormat
 		case "webp":
 			contentType = "image/" + requestedFormat
+			thumb, err := webmToWebp(fetchedObject, requestedWidth)
 			if hasFrame {
-				output, err = framedWebpFromWebm(output, frameObject, requestedWidth)
+				frameThumb, err := pngToWebp(frameObject, requestedWidth)
+				if handleFatalError(err, "failed to convert to webp") {
+					return internalServerError("failed to convert to webp")
+				}
+				output, err = framedWebp(thumb, frameThumb, requestedWidth)
 			} else {
-				output, err = webmToWebp(fetchedObject, requestedWidth)
+				output = thumb
 			}
 			if handleFatalError(err, "failed to convert to webp") {
 				return internalServerError("failed to convert to webp")
