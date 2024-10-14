@@ -37,9 +37,10 @@ func framedWebpFromWebm(input []byte, frame []byte, width int) ([]byte, error) {
 	cmd := exec.Command("ffmpeg",
 		"-c:v", "libvpx-vp9",
 		"-i", inPath,
+		"-c:v", "libvpx-vp9",
 		"-i", framePath,
 		"-c:a", "copy",
-		"-filter_complex", "[0:v]select=eq(n\\,0)[bg];[bg][1:v]overlay=0:0,"+scale,
+		"-filter_complex", "[0:v][1:v] overlay=0:0:enable='between(t,0,20)',"+scale,
 		"-frames:v", "1",
 		"-y",
 		outPath)
