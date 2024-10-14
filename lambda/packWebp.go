@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"log"
@@ -34,11 +35,34 @@ func packWebp(inputs map[string][]byte, width int) ([]byte, error) {
 		"/tmp/card*.png",
 		"-resize", strconv.Itoa(width)+"x",
 		outPath)
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("error creating stdout pipe: %v", err)
+	}
+
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, fmt.Errorf("error creating stderr pipe: %v", err)
+	}
 	err = cmd.Start()
 	if err != nil {
 		fmt.Println("Error starting command:", err)
 		return nil, err
 	}
+	logPipe := func(pipe *bufio.Scanner, prefix string) {
+		for pipe.Scan() {
+			log.Printf("%s: %s\n", prefix, pipe.Text())
+		}
+		if err := pipe.Err(); err != nil {
+			log.Printf("%s: error reading pipe: %v\n", prefix, err)
+		}
+	}
+
+	stdoutScanner := bufio.NewScanner(stdoutPipe)
+	stderrScanner := bufio.NewScanner(stderrPipe)
+
+	go logPipe(stdoutScanner, "STDOUT")
+	go logPipe(stderrScanner, "STDERR")
 	err = cmd.Wait()
 	if err != nil {
 		fmt.Println("Error waiting for command:", err)
