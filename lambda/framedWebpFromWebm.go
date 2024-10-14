@@ -40,8 +40,7 @@ func framedWebpFromWebm(input []byte, frame []byte, width int) ([]byte, error) {
 		"-i", framePath,
 		"-c:a", "copy",
 		"-filter_complex", "[0:v]select=eq(n\\,0)[bg];[bg][1:v]overlay=0:0,"+scale,
-		"-f:v", "1",
-		"-c:v", "libwebp",
+		"-frames:v", "1",
 		"-y",
 		outPath)
 	stdout, err := cmd.StdoutPipe()
