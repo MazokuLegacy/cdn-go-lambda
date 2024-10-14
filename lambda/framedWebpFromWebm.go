@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"log"
@@ -43,11 +44,35 @@ func framedWebpFromWebm(input []byte, frame []byte, width int) ([]byte, error) {
 		"-f:v", "1",
 		"-y",
 		outPath)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, err
+	}
 	err = cmd.Start()
 	if err != nil {
 		fmt.Println("Error starting command:", err)
 		return nil, err
 	}
+
+	go func(reader io.ReadCloser) {
+		scanner := bufio.NewScanner(reader)
+		for scanner.Scan() {
+			log.Println(scanner.Text()) // Logs each line of output as it happens
+		}
+	}(stdout)
+
+	// Function to read and log errors in real-time
+	go func(reader io.ReadCloser) {
+		scanner := bufio.NewScanner(reader)
+		for scanner.Scan() {
+			log.Println(scanner.Text()) // Logs each line of errors as they happen
+		}
+	}(stderr)
+
 	err = cmd.Wait()
 	if err != nil {
 		fmt.Println("Error waiting for command:", err)
