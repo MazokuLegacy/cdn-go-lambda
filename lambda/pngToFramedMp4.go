@@ -36,10 +36,10 @@ func pngToFramedMp4(input []byte, frame []byte, width int) ([]byte, error) {
 	cmd := exec.Command("ffmpeg",
 		"-i", inPath,
 		"-i", framePath,
-		"-filter_complex", "[0:v][1:v] overlay=0:0"+scale,
-		"-an",
+		"-filter_complex", "[0:v][1:v] overlay=0:0,"+scale,
 		"-c:v", "libx264",
 		"-crf", "23",
+		"-an",
 		"-y",
 		outPath)
 	err = cmd.Start()
