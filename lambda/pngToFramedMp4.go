@@ -8,9 +8,10 @@ import (
 	"os/exec"
 )
 
-func webmToGif(input []byte, width int) ([]byte, error) {
-	inPath := "/tmp/input.webm"
-	outPath := "/tmp/output.gif"
+func pngToFramedMp4(input []byte, frame []byte, width int) ([]byte, error) {
+	inPath := "/tmp/input.png"
+	framePath := "/tmp/frame.webm"
+	outPath := "/tmp/output.mp4"
 	inFile, err := os.Create(inPath)
 	if err != nil {
 		return nil, err
@@ -18,21 +19,28 @@ func webmToGif(input []byte, width int) ([]byte, error) {
 	defer inFile.Close()
 	defer os.Remove(inPath)
 	inFile.Write(input)
+	frameFile, err := os.Create(framePath)
+	if err != nil {
+		return nil, err
+	}
+	defer frameFile.Close()
+	defer os.Remove(inPath)
+	frameFile.Write(frame)
 	outFile, err := os.Create(outPath)
 	if err != nil {
 		return nil, err
 	}
 	defer outFile.Close()
 	defer os.Remove(outPath)
-	if width > 300 {
-		width = 300
-	}
 	scale := getScale(width)
 	cmd := exec.Command("ffmpeg",
-		"-codec:v", "libvpx-vp9",
 		"-i", inPath,
-		"-vf", scale+",split=2[a][b];[b]palettegen[p];[a][p]paletteuse",
-		"-loop", "0",
+		"-c:v", "libvpx-vp9",
+		"-i", framePath,
+		"-filter_complex", "[0:v][1:v] overlay=0:0:enable='between(t,0,20)',"+scale,
+		"-an",
+		"-c:v", "libx264",
+		"-crf", "23",
 		"-y",
 		outPath)
 	err = cmd.Start()

@@ -126,11 +126,27 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 
 		}
 	} else {
-		output, err = pngToWebp(fetchedObject, int(requestedWidth))
-		if handleFatalError(err, "failed to resize and convert to webp") {
-			return internalServerError("failed to resize and convert to webp")
+		if hasFrame {
+			switch requestedFormat {
+			case "mp4":
+				output, err = pngToFramedMp4(fetchedObject, frameObject, requestedWidth)
+				if handleFatalError(err, "failed to add frame and get mp4") {
+					return internalServerError("failed to add frame and get mp4")
+				}
+			default:
+				output, err = pngToWebp(fetchedObject, int(requestedWidth))
+				if handleFatalError(err, "failed to resize and convert to webp") {
+					return internalServerError("failed to resize and convert to webp")
+				}
+				contentType = "image/webp"
+			}
+		} else {
+			output, err = pngToWebp(fetchedObject, int(requestedWidth))
+			if handleFatalError(err, "failed to resize and convert to webp") {
+				return internalServerError("failed to resize and convert to webp")
+			}
+			contentType = "image/webp"
 		}
-		contentType = "image/webp"
 	}
 	return storeAndReturnTransformedMedia(output, s3Client, key, operationString, contentType)
 }
