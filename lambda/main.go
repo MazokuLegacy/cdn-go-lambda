@@ -78,8 +78,8 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 			} else {
 				output, err = webmToGif(fetchedObject, requestedWidth)
 			}
-			if handleFatalError(err, "failed to convert to png") {
-				return internalServerError("failed to convert to png")
+			if handleFatalError(err, "failed to convert to gif") {
+				return internalServerError("failed to convert to gif")
 			}
 			contentType = "image/" + requestedFormat
 		case "webp":
