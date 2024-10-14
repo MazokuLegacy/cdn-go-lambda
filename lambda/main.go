@@ -37,11 +37,11 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	s3Client := s3.NewFromConfig(cfg)
 	if pathArr[0] == "packs" {
 		cardIds := pathArr[1:lastIndex]
-		var carkeys []string
+		cardKeys := cardIds[0:0]
 		for _, id := range cardIds {
-			carkeys = append(carkeys, "cards/"+id+"/card")
+			cardKeys = append(cardKeys, "cards/"+id+"/card")
 		}
-		fmt.Println(cardIds)
+		fmt.Println(cardKeys)
 	}
 	fetchedObject, sourceContentType, err := fetchS3Object(key, s3Client)
 	if handleFatalError(err, "failed to fetch original image") {
