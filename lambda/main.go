@@ -49,6 +49,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	if requestedWidth > 750 {
 		requestedWidth = 750
 	}
+	log.Println(strconv.Itoa(requestedWidth))
 	if pathArr[0] == "packs" {
 		cardIds := pathArr[1:lastIndex]
 		cardKeys := cardIds[0:0]
@@ -71,8 +72,6 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		return internalServerError("failed to fetch original image")
 	}
 	if pathArr[0] != "cards" || operationString == "original" {
-		log.Println("caught by the early return")
-		log.Println(strconv.Itoa(len(fetchedObject)))
 		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operationString, sourceContentType)
 	}
 	requestedFormat := operationsMap["format"]
