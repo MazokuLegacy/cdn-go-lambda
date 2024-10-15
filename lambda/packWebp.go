@@ -33,7 +33,7 @@ func packWebp(inputs map[string][]byte, width int) ([]byte, error) {
 	cmd := exec.Command("magick",
 		"convert", "+append",
 		"/tmp/card*.png",
-		"-resize", strconv.Itoa(width)+"x",
+		"-resize", strconv.FormatFloat(float64(width)/float64(index), 'f', 2, 64)+"x",
 		outPath)
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
