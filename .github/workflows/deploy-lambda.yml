@@ -22,4 +22,4 @@ jobs:
           aws-region: us-east-1
       - name: Deploy to AWS Lambda
         run: |
-          aws s3 cp function.zip s3://cdn-lambda/function.zip
+          aws lambda update-function-code --function-name ImgTransformationStack-imageoptimization4C49F079-JMuXCUfwca31 --zip-file fileb://function.zip

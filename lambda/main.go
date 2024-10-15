@@ -71,6 +71,8 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		return internalServerError("failed to fetch original image")
 	}
 	if pathArr[0] != "cards" || operationString == "original" {
+		log.Println("caught by the early return")
+		log.Println(strconv.Itoa(len(fetchedObject)))
 		return storeAndReturnTransformedMedia(fetchedObject, s3Client, key, operationString, sourceContentType)
 	}
 	requestedFormat := operationsMap["format"]
