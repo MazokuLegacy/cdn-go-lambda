@@ -20,10 +20,10 @@ func getScale(width int) string {
 	return "scale=" + strconv.Itoa(width) + ":-1"
 }
 
-func fetchS3ObjectsParallel(keys []string, s3Client *s3.Client) (map[string][]byte, error) {
+func fetchS3ObjectsParallel(keys []string, s3Client *s3.Client) ([][]byte, error) {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	results := make(map[string][]byte)
+	results := make([][]byte, len(keys))
 	var anyerr error
 	wg.Add(len(keys))
 	for i, key := range keys {
@@ -45,7 +45,7 @@ func fetchS3ObjectsParallel(keys []string, s3Client *s3.Client) (map[string][]by
 				result = data
 			}
 			mu.Lock()
-			results[strconv.Itoa(i)] = result
+			results[i] = result
 			mu.Unlock()
 		}(key, i)
 	}

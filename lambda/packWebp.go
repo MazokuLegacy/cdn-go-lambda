@@ -10,10 +10,9 @@ import (
 	"strconv"
 )
 
-func packWebp(inputs map[string][]byte, width int) ([]byte, error) {
-	index := 0
-	for _, fileData := range inputs {
-		inPath := "/tmp/card" + strconv.Itoa(index) + ".png"
+func packWebp(inputs [][]byte, width int) ([]byte, error) {
+	for i, fileData := range inputs {
+		inPath := "/tmp/card" + strconv.Itoa(i) + ".png"
 		inFile, err := os.Create(inPath)
 		if err != nil {
 			return nil, err
@@ -21,7 +20,6 @@ func packWebp(inputs map[string][]byte, width int) ([]byte, error) {
 		defer inFile.Close()
 		defer os.Remove(inPath)
 		inFile.Write(fileData)
-		index = index + 1
 	}
 	outPath := "/tmp/output.webp"
 	outFile, err := os.Create(outPath)
