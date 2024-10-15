@@ -26,8 +26,8 @@ func fetchS3ObjectsParallel(keys []string, s3Client *s3.Client) (map[string][]by
 	results := make(map[string][]byte)
 	var anyerr error
 	wg.Add(len(keys))
-	for _, key := range keys {
-		go func(k string) {
+	for i, key := range keys {
+		go func(k string, i int) {
 			defer wg.Done()
 			data, sourceContentType, err := fetchS3Object(key, s3Client)
 			if err != nil {
@@ -45,9 +45,9 @@ func fetchS3ObjectsParallel(keys []string, s3Client *s3.Client) (map[string][]by
 				result = data
 			}
 			mu.Lock()
-			results[k] = result
+			results[strconv.Itoa(i)] = result
 			mu.Unlock()
-		}(key)
+		}(key, i)
 	}
 
 	wg.Wait()
