@@ -139,10 +139,11 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 					if handleFatalError(err, "failed to convert to mp4") {
 						return internalServerError("failed to convert to mp4")
 					}
-					contentType = "video/webm"
+				} else {
+					output = fetchedObject
 				}
 			}
-
+			contentType = "video/webm"
 		}
 	} else {
 		thumb, err := pngToWebp(fetchedObject, requestedWidth)
