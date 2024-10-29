@@ -64,7 +64,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 		}
 		var strtpack = time.Now()
 		output, err := packWebp(cardObjects, requestedWidth)
-		fmt.Println("fetch time ", time.Since(strtpack))
+		fmt.Println("pack time ", time.Since(strtpack))
 		if handleFatalError(err, "failed to make webp") {
 			return internalServerError("failed to make webp")
 		}
