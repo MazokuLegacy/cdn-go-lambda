@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -49,18 +50,21 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	if requestedWidth > 750 {
 		requestedWidth = 750
 	}
-	log.Println(strconv.Itoa(requestedWidth))
 	if pathArr[0] == "packs" {
 		cardIds := pathArr[1:lastIndex]
 		cardKeys := cardIds[0:0]
 		for _, id := range cardIds {
 			cardKeys = append(cardKeys, "cards/"+id+"/card")
 		}
+		var strtfetch = time.Now()
 		cardObjects, err := fetchS3ObjectsParallel(cardKeys, s3Client)
+		fmt.Println("fetch time ", time.Since(strtfetch))
 		if handleFatalError(err, "failed to fetch card images") {
 			return internalServerError("failed to fetch card images")
 		}
+		var strtpack = time.Now()
 		output, err := packWebp(cardObjects, requestedWidth)
+		fmt.Println("fetch time ", time.Since(strtpack))
 		if handleFatalError(err, "failed to make webp") {
 			return internalServerError("failed to make webp")
 		}

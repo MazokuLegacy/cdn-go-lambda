@@ -20,6 +20,39 @@ func getScale(width int) string {
 	return "scale=" + strconv.Itoa(width) + ":-1"
 }
 
+func processFilesParallel(inputs [][]byte) error {
+	var wg sync.WaitGroup
+	errCh := make(chan error, len(inputs))
+
+	for i, fileData := range inputs {
+		wg.Add(1)
+		go func(i int, fileData []byte) {
+			defer wg.Done()
+			inPath := "/tmp/pack/card" + strconv.Itoa(i) + ".png"
+			inFile, err := os.Create(inPath)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			_, writeErr := inFile.Write(fileData)
+			if writeErr != nil {
+				errCh <- writeErr
+			}
+			inFile.Close()
+		}(i, fileData)
+	}
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
+	for err := range errCh {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func fetchS3ObjectsParallel(keys []string, s3Client *s3.Client) ([][]byte, error) {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
@@ -73,16 +106,15 @@ func fetchS3Object(key string, s3Client *s3.Client) ([]byte, string, error) {
 }
 
 func storeAndReturnTransformedMedia(object []byte, s3Client *s3.Client, key string, operations string, contentType string) (events.LambdaFunctionURLResponse, error) {
-	transformedBucket := os.Getenv("transformedImageBucketName")
-	_, err := s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
-		Bucket:      aws.String(transformedBucket),
-		Key:         aws.String(key + "/" + operations),
-		Body:        bytes.NewReader(object),
-		ContentType: aws.String(contentType),
-	})
-	if err != nil {
-		return internalServerError("saving image to bucket failed")
-	}
+	go func() {
+		transformedBucket := os.Getenv("transformedImageBucketName")
+		_, _ = s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
+			Bucket:      aws.String(transformedBucket),
+			Key:         aws.String(key + "/" + operations),
+			Body:        bytes.NewReader(object),
+			ContentType: aws.String(contentType),
+		})
+	}()
 	if len(object) > 6291456 {
 		redirectUrl := "https://cdn.mazoku.cc/" + key + "?" + strings.ReplaceAll(operations, ",", "&")
 		return events.LambdaFunctionURLResponse{
