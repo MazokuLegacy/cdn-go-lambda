@@ -5,10 +5,11 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"time"
 )
 
-func packWebp(inputs [][]byte, _ int) ([]byte, error) {
+func packWebp(inputs [][]byte, width int) ([]byte, error) {
 	//preparing inputs
 	inputfilestrt := time.Now()
 	dir := "/tmp/pack"
@@ -20,7 +21,7 @@ func packWebp(inputs [][]byte, _ int) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer os.RemoveAll(dir)
+	//defer os.RemoveAll(dir)
 	fmt.Println("input files prepared in ", time.Since(inputfilestrt))
 
 	//preparing output
@@ -36,23 +37,16 @@ func packWebp(inputs [][]byte, _ int) ([]byte, error) {
 	cmd := exec.Command("magick",
 		"convert", "+append",
 		"/tmp/pack/card*.png",
-		"-resize", "400x",
+		"-resize", strconv.FormatFloat(float64(width)/float64(len(inputs)), 'f', 2, 64)+"x",
 		outPath)
 
 	cmdstrt := time.Now()
-	err = cmd.Start()
+	err = cmd.Run()
 	if err != nil {
-		fmt.Println("Error starting command:", err)
+		fmt.Println("Error running command:", err)
 		return nil, err
 	}
-
-	err = cmd.Wait()
 	fmt.Println("cmd ran in ", time.Since(cmdstrt))
-	if err != nil {
-		fmt.Println("Error waiting for command:", err)
-		return nil, err
-	}
-
 	output, err := io.ReadAll(outFile)
 	return output, nil
 }
