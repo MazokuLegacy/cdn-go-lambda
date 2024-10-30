@@ -36,7 +36,7 @@ func packWebp(inputs [][]byte, _ int) ([]byte, error) {
 	cmd := exec.Command("magick",
 		"convert", "+append",
 		"/tmp/pack/card*.png",
-		"-resize", "150x",
+		"-resize", "400x",
 		outPath)
 
 	cmdstrt := time.Now()
