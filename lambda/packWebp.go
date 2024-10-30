@@ -21,7 +21,7 @@ func packWebp(inputs [][]byte, width int) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	//defer os.RemoveAll(dir)
+	defer os.RemoveAll(dir)
 	fmt.Println("input files prepared in ", time.Since(inputfilestrt))
 
 	//preparing output
