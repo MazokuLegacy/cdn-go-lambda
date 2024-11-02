@@ -28,7 +28,6 @@ func webmToWebp(input []byte, width int) ([]byte, error) {
 	cmd := exec.Command("ffmpeg",
 		"-codec:v", "libvpx-vp9",
 		"-y", "-i", inPath,
-		"-codec:v", "libwebp",
 		"-vf", scale+":flags=lanczos",
 		"-loop", "0",
 		outPath)
