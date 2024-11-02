@@ -94,6 +94,7 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 			requestedFormat = "webp"
 		}
 	}
+	mask := operationsMap["mask"]
 	var output []byte
 	contentType := sourceContentType
 	if sourceContentType == "video/webm" {
@@ -135,21 +136,23 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 			}
 			contentType = "video/" + requestedFormat
 		default:
-			log.Println("whats going on here")
 			if hasFrame {
 				output, err = framedWebm(fetchedObject, frameObject, requestedWidth)
-
-				log.Println("frame?")
 			} else {
-				if requestedWidth != 750 {
-					log.Println("widhth != 750?")
-					output, err = scaleWebm(fetchedObject, requestedWidth)
-					if handleFatalError(err, "failed to convert to mp4") {
-						return internalServerError("failed to convert to mp4")
+				if mask == "true" {
+					output, err = maskifyWebm(fetchedObject, requestedWidth)
+					if handleFatalError(err, "failed to maskify webm") {
+						return internalServerError("failed to maskify webm")
 					}
 				} else {
-					log.Println("else?")
-					output = fetchedObject
+					if requestedWidth != 750 {
+						output, err = scaleWebm(fetchedObject, requestedWidth)
+						if handleFatalError(err, "failed to scale webm") {
+							return internalServerError("failed to scale webm")
+						}
+					} else {
+						output = fetchedObject
+					}
 				}
 			}
 			contentType = "video/webm"
