@@ -82,16 +82,16 @@ func LambdaHandler(ctx context.Context, event events.LambdaFunctionURLRequest) (
 	requestedFrame, hasFrame := operationsMap["frame"]
 	var frameObject []byte
 	if hasFrame {
-		frameType := ".png"
-		if _, ok := map[string]string{"gif": "", "webm": "", "mp4": ""}[requestedFormat]; ok || sourceContentType == "video/webm" {
-			frameType = ".webm"
-		}
-		framekey := "frames/" + requestedFrame + "/frame" + frameType
+		framekey := "frames/" + requestedFrame + "/frame"
 		log.Println(framekey)
-		frameObject, _, err = fetchS3Object("frames/"+requestedFrame+"/frame"+frameType, s3Client)
+		var frameContentType string
+		frameObject, frameContentType, err = fetchS3Object(framekey, s3Client)
 		if err != nil {
 			handleFatalError(err, "failed to fetch frame")
 			return internalServerError("failed to fetch frame")
+		}
+		if frameContentType != "video/webm" {
+			requestedFormat = "webp"
 		}
 	}
 	var output []byte
